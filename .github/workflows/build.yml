@@ -3,47 +3,96 @@ name: Build ALI Linux ISO
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  build:
+  apps:
+    name: Build ALI apps
     runs-on: ubuntu-24.04
-    timeout-minutes: 360
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout
+        uses: actions/checkout@v5
 
-      - name: Build ALI apps (.deb)
+      - name: Install app build deps
         run: |
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev pkg-config make gcc dpkg-dev
-          (cd apps/ali-center && make && sh ./build-deb.sh)
-          (cd apps/ali-notepad && make && sh ./build-deb.sh)
+
+      - name: Build ali-center
+        run: |
+          cd apps/ali-center
+          make
+          sh ./build-deb.sh
+
+      - name: Build ali-notepad
+        run: |
+          cd apps/ali-notepad
+          make
+          sh ./build-deb.sh
+
+      - name: Stage packages
+        run: |
+          mkdir -p dist-apps
+          cp apps/ali-center/*.deb apps/ali-notepad/*.deb dist-apps/
+          ls -lh dist-apps/
+
+      - name: Upload app packages
+        uses: actions/upload-artifact@v5
+        with:
+          name: ali-apps
+          path: dist-apps/*.deb
+          if-no-files-found: error
+          retention-days: 7
+
+  build:
+    name: Build ISO
+    needs: apps
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Fetch app packages
+        uses: actions/download-artifact@v5
+        with:
+          name: ali-apps
+          path: /tmp/ali-apps
+
+      - name: Stage app packages into image
+        run: |
           mkdir -p config/packages.chroot
-          cp apps/ali-center/*.deb apps/ali-notepad/*.deb config/packages.chroot/ || true
+          cp /tmp/ali-apps/*.deb config/packages.chroot/
           ls -lh config/packages.chroot/
 
-      - name: Install deps
+      - name: Install live-build deps
         run: |
           sudo apt-get update
           sudo apt-get install -y debootstrap squashfs-tools xorriso isolinux syslinux-efi grub-pc-bin grub-efi-amd64-bin mtools dosfstools memtest86+ debian-archive-keyring git make cpio apt-utils gettext po4a
-          # Ubuntu's live-build is an ancient fork (uses --bootloader singular, no --image-name).
-          # Install real Debian live-build from salsa so trixie flags work.
+          # Ubuntu ships an old live-build fork - use real Debian live-build from salsa for trixie flags.
           rm -rf /tmp/live-build
           git clone --depth 1 https://salsa.debian.org/live-team/live-build.git /tmp/live-build
           sudo make -C /tmp/live-build install
           lb --version
-          lb config --help | grep -E "bootloaders|image-name|architecture" || true
 
       - name: Build ISO
         run: |
           sudo lb clean || true
           sudo sh auto/config
           sudo lb build
-          ls -lh *.iso *.hybrid.iso 2>/dev/null || ls -lh *.iso || true
-          sudo sha256sum *.iso > SHA256SUMS.txt || true
+          ls -lh ./*.iso || true
+          sudo sha256sum ./*.iso > SHA256SUMS.txt
           ls -lh
 
-      - name: Upload ISO artifact
+      - name: Upload ISO
         uses: actions/upload-artifact@v5
         with:
           name: ali-linux-iso
