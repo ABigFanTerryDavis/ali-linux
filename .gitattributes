@@ -4,4 +4,11 @@ config/hooks/* text eol=lf
 *.sh text eol=lf
 *.hook.* text eol=lf
 .github/workflows/*.yml text eol=lf
+config/includes.chroot/** text eol=lf
+config/package-lists/** text eol=lf
+config/hooks/* text eol=lf
+apps/** text eol=lf
+Makefile text eol=lf
+*.c text eol=lf
+*.desktop text eol=lf
 

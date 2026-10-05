@@ -1,0 +1,8 @@
+{
+  "policies": {
+    "Homepage": {
+      "URL": "file:///usr/share/ali/welcome.html",
+      "StartPage": "homepage"
+    }
+  }
+}

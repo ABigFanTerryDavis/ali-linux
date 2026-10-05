@@ -8,7 +8,7 @@ if [ -d binary/bootloaders ]; then
 fi
 
 # GRUB EFI + syslinux menus live here in different live-build versions - cover both
-for d in binary/boot/grub binary/syslinux binary/isolinux; do
+for d in binary/boot/grub binary/syslinux binary/isolinux binary/boot binary/install; do
   if [ -d "$d" ]; then
     grep -rl "Debian" "$d" 2>/dev/null | xargs -r sed -i 's/Debian GNU\/Linux/ALI Linux/g; s/Debian/ALI/g' || true
   fi

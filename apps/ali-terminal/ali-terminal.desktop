@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=ALI Terminal
+Comment=ALI Linux terminal (XFCE Terminal underneath)
+Exec=ali-terminal
+Icon=utilities-terminal
+Terminal=false
+Categories=System;TerminalEmulator;
+Keywords=ALI;Terminal;Shell;

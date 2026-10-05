@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=ALI Installer
+Comment=Install ALI Linux to disk
+Exec=debian-installer-launcher
+Icon=system-software-install
+Terminal=false
+Categories=System;
+Keywords=ALI;Install;System;

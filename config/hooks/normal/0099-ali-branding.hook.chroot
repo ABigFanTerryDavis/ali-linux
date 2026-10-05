@@ -4,10 +4,10 @@ set -e
 # Overwrites base-files on every build so branding survives upgrades in the live system
 
 cat > /etc/os-release <<'EOF'
-PRETTY_NAME="ALI Linux 1.0"
+PRETTY_NAME="ALI Linux 1.0.6"
 NAME="ALI Linux"
-VERSION_ID="1.0"
-VERSION="1.0 (trixie-base)"
+VERSION_ID="1.0.6"
+VERSION="1.0.6"
 ID=ali
 ID_LIKE=debian
 HOME_URL="https://github.com/"
@@ -16,9 +16,9 @@ EOF
 
 cat > /etc/lsb-release <<'EOF'
 DISTRIB_ID="ALI Linux"
-DISTRIB_RELEASE=1.0
+DISTRIB_RELEASE=1.0.6
 DISTRIB_CODENAME=ali
-DISTRIB_DESCRIPTION="ALI Linux 1.0"
+DISTRIB_DESCRIPTION="ALI Linux 1.0.6"
 EOF
 
 echo "ali" > /etc/hostname
@@ -30,9 +30,9 @@ ff02::1 ip6-allnodes
 ff02::2 ip6-allrouters
 EOF
 
-echo "ALI Linux 1.0 \\n \\l" > /etc/issue
-echo "ALI Linux 1.0" > /etc/issue.net
-echo "ALI Linux 1.0 - Debian trixie based." > /etc/motd
+echo "ALI Linux 1.0.6 \\n \\l" > /etc/issue
+echo "ALI Linux 1.0.6" > /etc/issue.net
+echo "ALI Linux 1.0.6" > /etc/motd
 
 # LightDM greeter branding if present
 if [ -d /etc/lightdm ]; then
@@ -53,10 +53,77 @@ fi
 # Simple wallpaper
 mkdir -p /usr/share/backgrounds/ali
 cat > /usr/share/backgrounds/ali/ali-wallpaper.svg <<'EOF'
-<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080"><rect width="100%" height="100%" fill="#1a1d29"/><text x="50%" y="48%" font-family="sans-serif" font-size="120" fill="#ffffff" text-anchor="middle">ALI Linux</text><text x="50%" y="58%" font-family="sans-serif" font-size="36" fill="#8b93b8" text-anchor="middle">Debian based - XFCE</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080"><rect width="100%" height="100%" fill="#1a1d29"/><text x="50%" y="48%" font-family="sans-serif" font-size="120" fill="#ffffff" text-anchor="middle">ALI Linux</text><text x="50%" y="58%" font-family="sans-serif" font-size="36" fill="#8b93b8" text-anchor="middle">XFCE</text></svg>
 EOF
 
-# fastfetch / neofetch logo override
-mkdir -p /etc/skel/.config/fastfetch 2>/dev/null || true
+# ALI Terminal visible rebrand - wrapper comes from includes.chroot
+chmod +x /usr/bin/ali-terminal 2>/dev/null || true
+# Hide stock XFCE terminal so only "ALI Terminal" shows in menus
+for d in /usr/share/applications; do
+  if [ -f "$d/xfce4-terminal.desktop" ]; then
+    if grep -q "^NoDisplay=" "$d/xfce4-terminal.desktop"; then
+      sed -i 's/^NoDisplay=.*/NoDisplay=true/' "$d/xfce4-terminal.desktop"
+    else
+      echo "NoDisplay=true" >> "$d/xfce4-terminal.desktop"
+    fi
+  fi
+done
+
+# GRUB distributor branding (installed-system grub, live menu handled by 0990 hook)
+mkdir -p /etc/default/grub.d
+echo 'GRUB_DISTRIBUTOR="ALI Linux"' > /etc/default/grub.d/ali.cfg
+
+# Plymouth: avoid Debian splash, use plain text theme if plymouth exists
+if command -v plymouth-set-default-theme >/dev/null 2>&1; then
+  plymouth-set-default-theme text 2>/dev/null || true
+fi
+
+# Live session polish - autologin + passwordless sudo (git can't keep 0440, so enforce here)
+mkdir -p /etc/lightdm/lightdm.conf.d
+cat > /etc/lightdm/lightdm.conf.d/ali-autologin.conf <<'EOF'
+[Seat:*]
+autologin-user=ali
+autologin-user-timeout=0
+greeter-session=lightdm-gtk-greeter
+EOF
+mkdir -p /etc/sudoers.d
+echo "ali ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/ali-live
+chmod 0440 /etc/sudoers.d/ali-live || true
+
+# fastfetch ALI logo (authoritative - includes.chroot carries the same files for review)
+mkdir -p /usr/share/ali /etc/skel/.config/fastfetch
+cat > /usr/share/ali/fastfetch-logo.txt <<'EOF'
+    ___    __    ____
+   /   |  / /   /  _/
+  / /| | / /    / /
+ / ___ |/ /___ / /
+/_/  |_/_____/___/
+
+ALI Linux 1.0.6 - XFCE
+EOF
+cat > /etc/skel/.config/fastfetch/config.jsonc <<'EOF'
+{
+  "logo": {
+    "type": "file",
+    "source": "/usr/share/ali/fastfetch-logo.txt"
+  },
+  "modules": [
+    "title",
+    "separator",
+    "os",
+    "host",
+    "kernel",
+    "uptime",
+    "de",
+    "wm",
+    "theme",
+    "terminal",
+    "cpu",
+    "memory",
+    "disk",
+    "break"
+  ]
+}
+EOF
 
 echo "ALI branding applied"

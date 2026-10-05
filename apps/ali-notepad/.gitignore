@@ -1,0 +1,4 @@
+ali-notepad
+*.o
+*.deb
+build/
