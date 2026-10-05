@@ -42,3 +42,61 @@ jobs:
             SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 7
+
+  gui-test:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Download ISO
+        uses: actions/download-artifact@v4
+        with:
+          name: ali-linux-iso
+          path: ./iso
+
+      - name: Boot in QEMU and screenshot GUI
+        run: |
+          ls -lh ./iso
+          ISO=$(ls ./iso/*.iso | head -n1)
+          echo "ISO=$ISO"
+          sudo apt-get update
+          sudo apt-get install -y qemu-system-x86 ovmf socat netpbm
+          # Try KVM, fall back to TCG (slow) if unavailable
+          rm -f /tmp/qmon /tmp/shot1.ppm /tmp/shot2.ppm /tmp/shot3.ppm
+          timeout 420 qemu-system-x86_64 \
+            -m 2048 -smp 2 \
+            -cdrom "$ISO" -boot order=d \
+            -display none -vga std \
+            -monitor unix:/tmp/qmon,server,nowait \
+            -accel kvm:tcg \
+            > /tmp/qemu.log 2>&1 &
+          QEMU_PID=$!
+          echo "QEMU pid $QEMU_PID, waiting for boot..."
+          sleep 90
+          echo "screendump /tmp/shot1.ppm" | socat - UNIX-CONNECT:/tmp/qmon || true
+          sleep 60
+          echo "screendump /tmp/shot2.ppm" | socat - UNIX-CONNECT:/tmp/qmon || true
+          sleep 60
+          echo "screendump /tmp/shot3.ppm" | socat - UNIX-CONNECT:/tmp/qmon || true
+          echo "quit" | socat - UNIX-CONNECT:/tmp/qmon || true
+          sleep 2
+          kill $QEMU_PID || true
+          ls -lh /tmp/*.ppm || true
+          for f in /tmp/shot1.ppm /tmp/shot2.ppm /tmp/shot3.ppm; do
+            if [ -f "$f" ]; then
+              base=$(basename "$f" .ppm)
+              pnmtojpeg "$f" > "./$base.jpg" 2>/dev/null || cp "$f" "./$base.ppm"
+            fi
+          done
+          ls -lh ./*.jpg ./*.ppm 2>/dev/null || true
+          cat /tmp/qemu.log | tail -n 50 || true
+
+      - name: Upload GUI screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: ali-linux-gui
+          path: |
+            *.jpg
+            *.ppm
+          if-no-files-found: warn
+          retention-days: 7
