@@ -1,0 +1,17 @@
+# ALI Linux - XFCE package list
+task-xfce-desktop
+lightdm
+lightdm-gtk-greeter
+firefox-esr
+network-manager
+network-manager-gnome
+pavucontrol
+mousepad
+ristretto
+thunar-archive-plugin
+gvfs-backends
+firmware-linux
+firmware-iwlwifi
+sudo
+curl
+fastfetch

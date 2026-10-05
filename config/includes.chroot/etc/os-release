@@ -1,0 +1,10 @@
+PRETTY_NAME="ALI Linux 1.0"
+NAME="ALI Linux"
+VERSION_ID="1.0"
+VERSION="1.0 (trixie-base)"
+ID=ali
+ID_LIKE=debian
+HOME_URL="https://github.com/"
+SUPPORT_URL="https://github.com/"
+BUG_REPORT_URL="https://github.com/"
+DEBIAN_VERSION_FULL=13

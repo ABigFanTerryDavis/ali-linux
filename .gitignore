@@ -1,0 +1,10 @@
+cache/
+*.iso
+*.hybrid.iso
+*.files
+*.contents
+*.packages
+binary/
+chroot/
+stage/
+SHA256SUMS.txt

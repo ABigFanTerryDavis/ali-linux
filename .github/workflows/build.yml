@@ -1,0 +1,37 @@
+name: Build ALI Linux ISO
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y live-build debootstrap squashfs-tools xorriso isolinux syslinux-efi grub-pc-bin grub-efi-amd64-bin mtools dosfstools memtest86+
+
+      - name: Build ISO
+        run: |
+          sudo lb clean || true
+          sudo sh auto/config
+          sudo lb build
+          ls -lh *.iso *.hybrid.iso 2>/dev/null || ls -lh *.iso || true
+          sudo sha256sum *.iso > SHA256SUMS.txt || true
+          ls -lh
+
+      - name: Upload ISO artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ali-linux-iso
+          path: |
+            *.iso
+            SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 7

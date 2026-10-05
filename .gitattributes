@@ -1,0 +1,7 @@
+* text=auto
+auto/config text eol=lf
+config/hooks/* text eol=lf
+*.sh text eol=lf
+*.hook.* text eol=lf
+.github/workflows/*.yml text eol=lf
+
