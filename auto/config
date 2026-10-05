@@ -6,8 +6,9 @@ set -e
 lb config noauto \
   --mode debian \
   --distribution trixie \
+  -b iso-hybrid \
   --archive-areas "main contrib non-free non-free-firmware" \
-  --architectures amd64 \
+  --architecture amd64 \
   --linux-flavours amd64 \
   --debian-installer live \
   --debian-installer-distribution trixie \

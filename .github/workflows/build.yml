@@ -10,12 +10,19 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 360
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install deps
         run: |
           sudo apt-get update
-          sudo apt-get install -y live-build debootstrap squashfs-tools xorriso isolinux syslinux-efi grub-pc-bin grub-efi-amd64-bin mtools dosfstools memtest86+
+          sudo apt-get install -y debootstrap squashfs-tools xorriso isolinux syslinux-efi grub-pc-bin grub-efi-amd64-bin mtools dosfstools memtest86+ debian-archive-keyring git make cpio apt-utils xorrisofs isolinux
+          # Ubuntu's live-build is an ancient fork (uses --bootloader singular, no --image-name).
+          # Install real Debian live-build from salsa so trixie flags work.
+          rm -rf /tmp/live-build
+          git clone --depth 1 https://salsa.debian.org/live-team/live-build.git /tmp/live-build
+          sudo make -C /tmp/live-build install
+          lb --version
+          lb config --help | grep -E "bootloaders|image-name|architecture" || true
 
       - name: Build ISO
         run: |
