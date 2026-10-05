@@ -15,7 +15,7 @@ jobs:
       - name: Install deps
         run: |
           sudo apt-get update
-          sudo apt-get install -y debootstrap squashfs-tools xorriso isolinux syslinux-efi grub-pc-bin grub-efi-amd64-bin mtools dosfstools memtest86+ debian-archive-keyring git make cpio apt-utils
+          sudo apt-get install -y debootstrap squashfs-tools xorriso isolinux syslinux-efi grub-pc-bin grub-efi-amd64-bin mtools dosfstools memtest86+ debian-archive-keyring git make cpio apt-utils gettext
           # Ubuntu's live-build is an ancient fork (uses --bootloader singular, no --image-name).
           # Install real Debian live-build from salsa so trixie flags work.
           rm -rf /tmp/live-build
