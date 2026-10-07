@@ -1,0 +1,8 @@
+// Pardus b43 firmware installers download + verify firmware inside their
+// postinst, which breaks under live-build chroot (dpkg error -> build abort).
+// Debian's builds of the same packages configure cleanly, so forbid the
+// Pardus builds and fall back to Debian's. (1.1.6 pardus CI fix)
+Explanation: Pardus b43 postinst fails in chroot, use Debian builds
+Package: firmware-b43-installer firmware-b43legacy-installer
+Pin: release o=Pardus
+Pin-Priority: -1
