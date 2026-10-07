@@ -11,3 +11,5 @@ Status 1.1.6: building in CI.
 
 If the pardus job ever goes red while debian13 stays green, the Pardus
 mirror or keyring rotated - check `depo.pardus.org.tr` first.
+Known quirk: Pardus `firmware-b43*-installer` postinsts can't run in chroot,
+so they are pinned to Debian builds (`config/apt/preferences.d/`).
