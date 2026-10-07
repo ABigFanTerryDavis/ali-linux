@@ -1,0 +1,30 @@
+#!/bin/sh
+set -e
+# ALI Linux Pardus variant - repos enabled 1.1.6 (keyring landed), CI builds it.
+# Pardus 25 (yirmibes) is Debian trixie based, so same base flags as debian13.
+# Pardus extra repo stays DISABLED (see config/archives/) until keyring is solved.
+
+lb config noauto \
+  --mode debian \
+  --distribution trixie \
+  -b iso-hybrid \
+  --archive-areas "main contrib non-free non-free-firmware" \
+  --architecture amd64 \
+  --linux-flavours amd64 \
+  --debian-installer live \
+  --debian-installer-distribution trixie \
+  --bootloaders "syslinux grub-efi" \
+  --iso-application "ALI Linux" \
+  --iso-preparer "ALI Linux" \
+  --iso-publisher "ALI Linux" \
+  --iso-volume "ALI Linux Pardus" \
+  --image-name "ali-linux-1.1.6-pardus-amd64" \
+  --firmware-binary true \
+  --firmware-chroot true \
+  --updates true \
+  --security true \
+  --backports false \
+  --win32-loader false \
+  --memtest memtest86+ \
+  --bootappend-live "boot=live components username=ali hostname=ali quiet splash" \
+  "${@}"

@@ -1,0 +1,16 @@
+[Unit]
+Description=Odysseus - ALI first-up last-down task
+Documentation=https://github.com/
+DefaultDependencies=no
+Before=sysinit.target shutdown.target
+Wants=local-fs.target
+After=local-fs.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/odysseus
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=sysinit.target

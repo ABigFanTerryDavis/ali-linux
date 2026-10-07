@@ -1,0 +1,22 @@
+{
+  "logo": {
+    "type": "file",
+    "source": "/usr/share/ali/fastfetch-logo.txt"
+  },
+  "modules": [
+    "title",
+    "separator",
+    "os",
+    "host",
+    "kernel",
+    "uptime",
+    "de",
+    "wm",
+    "theme",
+    "terminal",
+    "cpu",
+    "memory",
+    "disk",
+    "break"
+  ]
+}

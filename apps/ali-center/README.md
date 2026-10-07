@@ -26,6 +26,6 @@ sudo make install DESTDIR=/
 ```
 
 ## Add to ISO (1.0.1 batch, NOT yet)
-- add `ali-center_*.deb` to `config/packages.chroot/` or a local apt repo
+- add `ali-center_*.deb` to `debian13/config/packages.chroot/` (CI does this automatically)
 - add dep `libgtk-3-0` to `config/package-lists/ali-xfce.list.chroot`
 - desktop file auto-appears in Settings Manager, no fork needed

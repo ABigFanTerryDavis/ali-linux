@@ -1,0 +1,8 @@
+#!/bin/sh
+# ali-update - one-shot system update for ALI Linux
+set -e
+sudo apt update
+sudo apt full-upgrade -y
+sudo apt autoremove -y
+sudo apt clean
+echo "ALI update done."

@@ -1,14 +1,25 @@
 * text=auto
-auto/config text eol=lf
-config/hooks/* text eol=lf
+debian13/auto/config text eol=lf
+pardus/auto/config text eol=lf
+debian13/config/hooks/* text eol=lf
+pardus/config/hooks/* text eol=lf
+debian13/config/includes.chroot/** text eol=lf
+pardus/config/includes.chroot/** text eol=lf
+debian13/config/package-lists/** text eol=lf
+pardus/config/package-lists/** text eol=lf
 *.sh text eol=lf
 *.hook.* text eol=lf
 .github/workflows/*.yml text eol=lf
-config/includes.chroot/** text eol=lf
-config/package-lists/** text eol=lf
-config/hooks/* text eol=lf
 apps/** text eol=lf
 Makefile text eol=lf
 *.c text eol=lf
 *.desktop text eol=lf
-
+*.gpg -text
+*.key.binary -text
+*.key.chroot -text
+*.asc text eol=lf
+*.jpg -text
+*.jpeg -text
+*.png -text
+*.svg text eol=lf
+*.iso -text

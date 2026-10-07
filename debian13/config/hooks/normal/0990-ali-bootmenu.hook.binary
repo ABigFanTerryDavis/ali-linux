@@ -1,0 +1,81 @@
+#!/bin/sh
+set -e
+# ALI Linux boot menu hook - runs in the binary stage
+# 1. Renames visible bootloader strings from Debian -> ALI Linux
+# 2. Adds "Normal Mode" + "Performance Mode" entries (same kernel, different params)
+# Defensive everywhere: this hook must never fail the build.
+
+# --- 1. Visible rebrand ---
+if [ -d binary/bootloaders ]; then
+  grep -rl "Debian" binary/bootloaders 2>/dev/null | xargs -r sed -i 's/Debian GNU\/Linux/ALI Linux/g; s/Debian Live/ALI Linux Live/g; s/Debian/ALI/g' || true
+fi
+
+# GRUB EFI + syslinux menus live here in different live-build versions - cover both
+for d in binary/boot/grub binary/syslinux binary/isolinux binary/boot binary/install; do
+  if [ -d "$d" ]; then
+    grep -rl "Debian" "$d" 2>/dev/null | xargs -r sed -i 's/Debian GNU\/Linux/ALI Linux/g; s/Debian/ALI/g' || true
+  fi
+done
+
+# --- 2. Normal / Performance entries ---
+# Locate the real kernel + initrd shipped in this image (names change per kernel)
+KIMG=""
+IIMG=""
+for k in binary/live/vmlinuz-* binary/live/vmlinuz; do
+  if [ -f "$k" ]; then KIMG="$k"; break; fi
+done
+for i in binary/live/initrd.img-* binary/live/initrd.img; do
+  if [ -f "$i" ]; then IIMG="$i"; break; fi
+done
+
+if [ -n "$KIMG" ] && [ -n "$IIMG" ]; then
+  KBASE="$(basename "$KIMG")"
+  IBASE="$(basename "$IIMG")"
+
+  NORMAL_PARAMS="boot=live components username=ali hostname=ali quiet splash"
+  PERF_PARAMS="boot=live components username=ali hostname=ali mitigations=off cpufreq.default_governor=performance nowatchdog"
+
+  # 2a. GRUB (EFI + legacy copies)
+  for g in binary/boot/grub/grub.cfg binary/boot/grub/x86_64-efi/grub.cfg; do
+    if [ -f "$g" ] && ! grep -q "ALI-Performance-Mode" "$g" 2>/dev/null; then
+      cat >> "$g" <<EOF || true
+
+# ALI-Performance-Mode - appended by 0990-ali-bootmenu hook
+menuentry 'ALI Linux 1.1.6 - Normal Mode' {
+  linux /live/$KBASE $NORMAL_PARAMS
+  initrd /live/$IBASE
+}
+menuentry 'ALI Linux 1.1.6 - Performance Mode' {
+  linux /live/$KBASE $PERF_PARAMS
+  initrd /live/$IBASE
+}
+EOF
+    fi
+  done
+
+  # 2b. isolinux / syslinux: relabel stock live entry as Normal, append Performance
+  for cfgdir in binary/isolinux binary/syslinux; do
+    if [ -d "$cfgdir" ]; then
+      for cfg in "$cfgdir"/*.cfg; do
+        [ -f "$cfg" ] || continue
+        if grep -q "boot=live" "$cfg" 2>/dev/null; then
+          sed -i '0,/menu label \(\^\)\?Live/s//menu label ^ALI Linux 1.1.6 - Normal Mode/' "$cfg" 2>/dev/null || true
+          if ! grep -q "ALI-Performance-Mode" "$cfg" 2>/dev/null; then
+            cat >> "$cfg" <<EOF || true
+
+# ALI-Performance-Mode - appended by 0990-ali-bootmenu hook
+label live-performance
+  menu label ^ALI Linux 1.1.6 - Performance Mode
+  kernel /live/$KBASE
+  append initrd=/live/$IBASE $PERF_PARAMS
+EOF
+          fi
+        fi
+      done
+    fi
+  done
+else
+  echo "ALI bootmenu: kernel not found under binary/live, entries skipped (rebrand only)" || true
+fi
+
+echo "ALI bootmenu rebrand done"

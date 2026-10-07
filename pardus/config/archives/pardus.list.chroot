@@ -1,0 +1,5 @@
+# Pardus 25 (yirmibes, trixie-based) extra repos - ENABLED 1.1.6.
+# Keyring: pardus.key.chroot / pardus.key.binary (from pardus-archive-keyring 2025.1).
+deb http://depo.pardus.org.tr/pardus yirmibes main contrib non-free non-free-firmware
+deb http://depo.pardus.org.tr/pardus yirmibes-deb main contrib non-free non-free-firmware
+deb http://depo.pardus.org.tr/guvenlik yirmibes-deb main contrib non-free non-free-firmware

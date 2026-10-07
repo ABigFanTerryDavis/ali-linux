@@ -1,0 +1,105 @@
+#!/bin/sh
+# ali-update-version - in-place ALI-layer upgrade, e.g. 1.1.6 -> 1.2.6
+# No format, no reinstall. Debian base packages still upgrade via apt
+# (see ali-update) - this command only moves the ALI layer.
+#
+# How it works: downloads the published v<TARGET> tag tarball from GitHub,
+# rebuilds the C apps from source, installs scripts/units/desktops from it,
+# then stamps the new version into os-release. Requires network.
+# Trust: GitHub TLS + tag existence. Sign release tags (we sign from 1.1.6).
+set -e
+
+REPO="${ALI_REPO:-ABigFanTerryDavis/ali-linux}"
+TARGET="${1:-}"
+
+current() {
+  grep '^VERSION_ID=' /etc/os-release 2>/dev/null | cut -d'"' -f2
+}
+
+if [ -z "$TARGET" ]; then
+  echo "usage: ali-update-version <target>   e.g. ali-update-version 1.2.6" >&2
+  echo "current: $(current)" >&2
+  exit 1
+fi
+case "$TARGET" in
+  *.*.*) : ;;
+  *) echo "ali-update-version: target must look like X.Y.Z (got '$TARGET')" >&2; exit 1 ;;
+esac
+if [ "$(current)" = "$TARGET" ]; then
+  echo "already on $TARGET, nothing to do."
+  exit 0
+fi
+
+if ! command -v curl >/dev/null 2>&1; then
+  echo "ali-update-version: curl missing, installing..." >&2
+  sudo apt update && sudo apt install -y curl
+fi
+
+WORK="$(mktemp -d)"
+trap 'rm -rf "$WORK"' EXIT INT TERM
+TARBALL="$WORK/ali-$TARGET.tar.gz"
+echo "fetching ALI Linux v$TARGET..."
+if ! curl -fsSL "https://github.com/$REPO/archive/refs/tags/v$TARGET.tar.gz" -o "$TARBALL"; then
+  echo "ali-update-version: v$TARGET is not published." >&2
+  echo "Check available versions, then run: sudo apt update && sudo apt full-upgrade" >&2
+  exit 1
+fi
+tar -xzf "$TARBALL" -C "$WORK"
+SRC="$WORK/ali-linux-$TARGET"
+
+# 1. compiled apps: build from source so ABI always matches this machine
+for app in ali-center ali-notepad; do
+  if [ -f "$SRC/apps/$app/Makefile" ]; then
+    echo "building $app..."
+    if ! command -v gcc >/dev/null 2>&1 || ! pkg-config --exists gtk+-3.0 2>/dev/null; then
+      sudo apt update && sudo apt install -y gcc make pkg-config libgtk-3-dev
+    fi
+    (cd "$SRC/apps/$app" && make)
+    sudo make -C "$SRC/apps/$app" install DESTDIR=/
+  fi
+done
+
+# 2. scripts, terminal wrapper, odysseus daemon (variant-aware layout)
+INCLUDES=""
+for v in debian13 pardus; do
+  if [ -d "$SRC/$v/config/includes.chroot/usr/bin" ]; then INCLUDES="$v"; break; fi
+done
+[ -n "$INCLUDES" ] || INCLUDES="debian13"
+if [ ! -d "$SRC/$INCLUDES/config/includes.chroot/usr/bin" ] && [ -d "$SRC/config/includes.chroot/usr/bin" ]; then
+  INCLUDES="."  # pre-1.1.4 layout fallback
+fi
+INC="$SRC/$INCLUDES/config/includes.chroot"
+[ "$INCLUDES" = "." ] && INC="$SRC/config/includes.chroot"
+for f in ali-update ali-info ali-perf ali-normal ali-update-version ali-terminal odysseus; do
+  if [ -f "$INC/usr/bin/$f" ]; then
+    sudo install -m755 "$INC/usr/bin/$f" /usr/bin/$f
+  elif [ -f "$SRC/apps/odysseus/$f" ]; then
+    sudo install -m755 "$SRC/apps/odysseus/$f" /usr/bin/$f
+  fi
+done
+
+# 3. desktop entries, odysseus unit, wallpapers, welcome page, configs
+sudo cp -r "$INC/usr/share/applications/." /usr/share/applications/ 2>/dev/null || true
+sudo cp -r "$INC/usr/share/ali/." /usr/share/ali/ 2>/dev/null || true
+sudo cp -r "$INC/usr/share/backgrounds/." /usr/share/backgrounds/ 2>/dev/null || true
+if [ -f "$INC/usr/lib/systemd/system/odysseus.service" ]; then
+  sudo cp "$INC/usr/lib/systemd/system/odysseus.service" /usr/lib/systemd/system/
+  sudo systemctl daemon-reload 2>/dev/null || true
+  sudo systemctl restart odysseus 2>/dev/null || true
+fi
+if [ -f "$INC/etc/ali-safe-rm.sh" ]; then
+  sudo cp "$INC/etc/ali-safe-rm.sh" /etc/ali-safe-rm.sh 2>/dev/null || true
+fi
+
+# 4. stamp the new version (compat keys untouched)
+sudo sed -i "s/^PRETTY_NAME=.*/PRETTY_NAME=\"ALI Linux $TARGET\"/" /etc/os-release
+sudo sed -i "s/^VERSION_ID=.*/VERSION_ID=\"$TARGET\"/" /etc/os-release
+sudo sed -i "s/^VERSION=.*/VERSION=\"$TARGET\"/" /etc/os-release
+if [ -f /etc/lsb-release ]; then
+  sudo sed -i "s/^DISTRIB_RELEASE=.*/DISTRIB_RELEASE=$TARGET/" /etc/lsb-release
+  sudo sed -i "s/^DISTRIB_DESCRIPTION=.*/DISTRIB_DESCRIPTION=\"ALI Linux $TARGET\"/" /etc/lsb-release
+fi
+
+echo "ALI layer now at $TARGET."
+echo "Debian base is separate: run ali-update for that."
+echo "Reboot recommended if Odysseus or boot entries changed."

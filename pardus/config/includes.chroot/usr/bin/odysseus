@@ -1,0 +1,122 @@
+#!/bin/sh
+# Odysseus v3 - ALI Linux long-task daemon.
+# Started first at boot, stopped last at shutdown (see odysseus.service).
+# Duties:
+#   1. Boot-mode enforcer: Performance boot entry -> governor performance.
+#   2. Health watchdog: disk/RAM/failed-units checks every 5 minutes.
+#   3. Status feed: /run/odysseus-status for ALI Center.
+#   4. Update notifier: daily apt refresh -> /run/ali-updates (count).
+LOG=/var/log/odysseus.log
+STATUS=/run/odysseus-status
+UPDATES=/run/ali-updates
+
+log() {
+  echo "$(date -u +%FT%TZ) odysseus: $1" >> "$LOG" 2>/dev/null || true
+}
+
+MODE="normal"
+if grep -q "mitigations=off" /proc/cmdline 2>/dev/null; then
+  MODE="performance"
+fi
+BOOTED_AT="$(date -u +%FT%TZ)"
+
+current_gov() {
+  cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>/dev/null || echo "unknown"
+}
+
+write_status() {
+  # $1 = last_warn (or empty)
+  mkdir -p /run 2>/dev/null || true
+  {
+    echo "mode=$MODE"
+    echo "governor=$(current_gov)"
+    echo "booted_at=$BOOTED_AT"
+    echo "last_check=$(date -u +%FT%TZ)"
+    echo "updates=$(cat $UPDATES 2>/dev/null || echo unknown)"
+    echo "last_warn=${1:-none}"
+  } > "$STATUS" 2>/dev/null || true
+}
+
+enforce_mode() {
+  want="$1"
+  gov="$want"
+  if [ "$want" = "normal" ]; then
+    gov="powersave"
+    if [ -f /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors ]; then
+      AVAIL="$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors)"
+      case " $AVAIL " in
+        *" schedutil "*) gov="schedutil" ;;
+      esac
+    fi
+  fi
+  if [ -d /sys/devices/system/cpu/cpu0/cpufreq ]; then
+    echo "$gov" | tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor >/dev/null 2>&1 || \
+      log "governor set failed (wanted $gov)"
+  fi
+}
+
+watchdog() {
+  WARN=""
+  USEP="$(df -P / 2>/dev/null | awk 'NR==2 {print $5}' | tr -d '%')"
+  if [ -n "$USEP" ] && [ "$USEP" -ge 90 ] 2>/dev/null; then
+    WARN="disk / at ${USEP}%"
+    log "WARN $WARN"
+  fi
+  if command -v free >/dev/null 2>&1; then
+    MPCT="$(free 2>/dev/null | awk '/^Mem:/ {printf "%d", $3/$2*100}')"
+    if [ -n "$MPCT" ] && [ "$MPCT" -ge 90 ] 2>/dev/null; then
+      WARN="ram at ${MPCT}%"
+      log "WARN $WARN"
+    fi
+  fi
+  if command -v systemctl >/dev/null 2>&1; then
+    FAILED="$(systemctl --failed --no-legend 2>/dev/null | wc -l)"
+    if [ "$FAILED" -gt 0 ] 2>/dev/null; then
+      WARN="$FAILED failed unit(s)"
+      log "WARN $WARN"
+    fi
+  fi
+  write_status "$WARN"
+}
+
+update_check() {
+  # once per day: refresh apt lists, count upgradable
+  TODAY="$(date -u +%F)"
+  if [ -f /run/odysseus-apt-day ] && [ "$(cat /run/odysseus-apt-day 2>/dev/null)" = "$TODAY" ]; then
+    return 0
+  fi
+  if command -v apt-get >/dev/null 2>&1; then
+    DEBIAN_FRONTEND=noninteractive apt-get update -qq 2>/dev/null || true
+    N="$(apt list --upgradable 2>/dev/null | grep -cv '^Listing')"
+    echo "$N" > "$UPDATES" 2>/dev/null || true
+    log "updates available: $N"
+  fi
+  echo "$TODAY" > /run/odysseus-apt-day 2>/dev/null || true
+}
+
+cleanup() {
+  log "stopping (last to end)"
+  exit 0
+}
+trap cleanup TERM INT
+
+log "starting (first to start) mode=$MODE"
+enforce_mode "$MODE"
+log "governor enforced for $MODE mode"
+write_status ""
+update_check
+
+CYCLES=0
+while true; do
+  sleep 300
+  CYCLES=$((CYCLES + 1))
+  if [ "$MODE" = "performance" ]; then
+    enforce_mode performance
+  fi
+  watchdog
+  # daily check approx: every 288th cycle
+  if [ "$CYCLES" -ge 288 ]; then
+    CYCLES=0
+    update_check
+  fi
+done

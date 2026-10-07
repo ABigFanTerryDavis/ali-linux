@@ -22,7 +22,7 @@ static void launch_async(const char *cmd) {
 
 static void read_os_pretty(char *out, size_t n) {
     FILE *f = fopen("/etc/os-release", "r");
-    snprintf(out, n, "ALI Linux 1.0.6");
+    snprintf(out, n, "ALI Linux 1.1.6");
     if (!f) return;
     char line[256];
     while (fgets(line, sizeof(line), f)) {
@@ -86,6 +86,61 @@ static void on_install_clicked(GtkButton *b, gpointer u) {
 
 static GtkWidget *tab_label_page(const char *title) {
     return gtk_label_new(title);
+}
+
+/* Read whole file into a malloc'd buffer (caller frees), NULL if missing. */
+static char *read_file_all(const char *path) {
+    FILE *f = fopen(path, "r");
+    if (!f) return NULL;
+    fseek(f, 0, SEEK_END);
+    long sz = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    if (sz < 0) sz = 0;
+    if (sz > 65536) sz = 65536;
+    char *buf = malloc((size_t)sz + 1);
+    if (!buf) { fclose(f); return NULL; }
+    size_t rd = fread(buf, 1, (size_t)sz, f);
+    fclose(f);
+    buf[rd] = '\0';
+    return buf;
+}
+
+/* Last n lines of a text buffer (no copy past returned static). */
+static char status_buf[4096];
+static const char *build_status_text(void) {
+    GString *s = g_string_new(NULL);
+    char *st = read_file_all("/run/odysseus-status");
+    if (st) {
+        g_string_append_printf(s, "Odysseus: running\n%s\n", st);
+        free(st);
+    } else {
+        g_string_append(s, "Odysseus: not running\n(starts at boot on ALI Linux)\n");
+    }
+    char *up = read_file_all("/run/ali-updates");
+    if (up) {
+        g_string_append_printf(s, "Pending updates: %s", up);
+        if (up[strlen(up) ? strlen(up) - 1 : 0] != '\n') g_string_append_c(s, '\n');
+        free(up);
+    }
+    char *lg = read_file_all("/var/log/odysseus.log");
+    if (lg) {
+        /* keep last 8 lines */
+        int total = 0;
+        for (char *p = lg; *p; p++) if (*p == '\n') total++;
+        char *p = lg;
+        int skip = total > 8 ? total - 8 : 0;
+        while (skip > 0 && *p) { if (*p == '\n') skip--; p++; }
+        g_string_append_printf(s, "\n--- log (tail) ---\n%s", p);
+        free(lg);
+    }
+    snprintf(status_buf, sizeof(status_buf), "%s", s->str);
+    g_string_free(s, TRUE);
+    return status_buf;
+}
+
+static void on_status_refresh(GtkButton *b, gpointer u) {
+    (void)b;
+    gtk_label_set_text(GTK_LABEL(u), build_status_text());
 }
 
 int main(int argc, char **argv) {
@@ -168,11 +223,25 @@ int main(int argc, char **argv) {
         gtk_notebook_append_page(GTK_NOTEBOOK(nb), box, tab_label_page("Install"));
     }
 
+    /* --- Status tab --- */
+    {
+        GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
+        gtk_container_set_border_width(GTK_CONTAINER(box), 16);
+        GtkWidget *l = gtk_label_new(NULL);
+        gtk_label_set_selectable(GTK_LABEL(l), TRUE);
+        gtk_label_set_text(GTK_LABEL(l), build_status_text());
+        gtk_box_pack_start(GTK_BOX(box), l, FALSE, FALSE, 0);
+        GtkWidget *b = gtk_button_new_with_label("Refresh");
+        g_signal_connect(b, "clicked", G_CALLBACK(on_status_refresh), l);
+        gtk_box_pack_start(GTK_BOX(box), b, FALSE, FALSE, 0);
+        gtk_notebook_append_page(GTK_NOTEBOOK(nb), box, tab_label_page("Status"));
+    }
+
     /* --- About tab --- */
     {
         GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
         gtk_container_set_border_width(GTK_CONTAINER(box), 16);
-        GtkWidget *l = gtk_label_new("ALI Linux 1.0.6\nXFCE - amd64.\n\nALI Center v1 - C + GTK3.");
+        GtkWidget *l = gtk_label_new("ALI Linux 1.1.6\nXFCE - amd64.\n\nALI Center v1 - C + GTK3.");
         gtk_box_pack_start(GTK_BOX(box), l, FALSE, FALSE, 0);
         gtk_notebook_append_page(GTK_NOTEBOOK(nb), box, tab_label_page("About"));
     }

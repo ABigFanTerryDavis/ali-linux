@@ -1,0 +1,11 @@
+#!/bin/sh
+# ali-perf - switch to Performance mode at runtime (CPU governor).
+# Note: mitigations=off is boot-only, use the "Performance Mode" boot entry for full effect.
+set -e
+if [ ! -d /sys/devices/system/cpu/cpu0/cpufreq ]; then
+  echo "ali-perf: cpufreq not available on this machine."
+  exit 1
+fi
+echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor >/dev/null
+echo "ALI Performance mode on (governor: performance)."
+echo "Tip: boot entry 'Performance Mode' also disables CPU mitigations."
