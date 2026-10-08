@@ -51,12 +51,12 @@ static void on_update_clicked(GtkButton *b, gpointer u) {
 }
 
 static void on_perf_clicked(GtkButton *b, gpointer u) {
-    (void)b;
+    (void)b; (void)u;
     launch_async("x-terminal-emulator -e 'sudo ali-perf; echo; read -n1 -p \"press any key\"'");
 }
 
 static void on_normal_clicked(GtkButton *b, gpointer u) {
-    (void)b;
+    (void)b; (void)u;
     launch_async("x-terminal-emulator -e 'sudo ali-normal; echo; read -n1 -p \"press any key\"'");
 }
 
@@ -111,6 +111,18 @@ static void on_browser_clicked(GtkButton *b, gpointer u) {
     launch_async("firefox-esr 2>/dev/null || firefox 2>/dev/null || exo-open https://github.com/");
 }
 
+static char game_buf[256];
+static const char *game_status_text(void) {
+    char *mode = run_capture("cat /var/lib/terrydavis/gamemode 2>/dev/null");
+    char *force = run_capture("cat /var/lib/terrydavis/gamemode.force 2>/dev/null");
+    snprintf(game_buf, sizeof(game_buf), "%s: %s%s%s",
+        T("Game mode", "Oyun modu"),
+        (mode && strcmp(mode, "on") == 0) ? T("ON", "AÇIK") : T("off", "kapalı"),
+        (force && *force) ? " (" : "",
+        (force && *force) ? (strcmp(force, "on") == 0 ? T("forced)", "zorla)") : T("held off)", "tutuluyor)")) : "");
+    return game_buf;
+}
+
 static void on_game_clicked(GtkButton *b, gpointer u) {
     (void)b;
     /* cycle: auto -> force on -> force off -> auto */
@@ -132,18 +144,6 @@ static void on_game_clicked(GtkButton *b, gpointer u) {
     gtk_dialog_run(GTK_DIALOG(d));
     gtk_widget_destroy(d);
     gtk_label_set_text(GTK_LABEL(u), game_status_text());
-}
-
-static char game_buf[256];
-static const char *game_status_text(void) {
-    char *mode = run_capture("cat /var/lib/terrydavis/gamemode 2>/dev/null");
-    char *force = run_capture("cat /var/lib/terrydavis/gamemode.force 2>/dev/null");
-    snprintf(game_buf, sizeof(game_buf), "%s: %s%s%s",
-        T("Game mode", "Oyun modu"),
-        (mode && strcmp(mode, "on") == 0) ? T("ON", "AÇIK") : T("off", "kapalı"),
-        (force && *force) ? " (" : "",
-        (force && *force) ? (strcmp(force, "on") == 0 ? T("forced)", "zorla)") : T("held off)", "tutuluyor)")) : "");
-    return game_buf;
 }
 
 static void on_install_clicked(GtkButton *b, gpointer u) {
