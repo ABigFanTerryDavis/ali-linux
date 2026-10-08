@@ -1,4 +1,4 @@
-# ALI Linux 1.2.2 - Debian trixie based, XFCE, amd64 (+ Pardus variant)
+# ALI Linux 1.2.3 - Debian trixie based, XFCE, amd64 (+ Pardus variant)
 
 Learning project. Visible rebrand only - underneath 100% Debian.
 
@@ -23,6 +23,7 @@ Learning project. Visible rebrand only - underneath 100% Debian.
 - 1.2.0 - (staged, NO PUSH until 1.2.8) ALI Sentinel: IDS alerts + IPS auto-block, Center Security tab, ali-sentinel CLI
 - 1.2.1 - (staged, NO PUSH until 1.2.8) Odysseus v4: Sentinel memory (archive+restore blocks), boot/shutdown timing, Sentinel watchdog
 - 1.2.2 - (staged, NO PUSH until 1.2.8) terrydavis QoL daemon: Janitor cleanup, Town crier notifications, USB announcer
+- 1.2.3 - (staged, NO PUSH until 1.2.8) terrydavis v2: Game mode, WiFi watchdog, Night light, Download sorter
 
 ## Pre-push checklist (1.2.8 push - DO NOT PUSH BEFORE 1.2.8)
 ```powershell
@@ -54,14 +55,14 @@ Wait 20-40 min. Download artifact `ali-linux-iso`.
 VirtualBox:
 1. New -> Linux Debian 64-bit, 4GB RAM, 20GB VDI
 2. Settings -> System -> EFI: ON (we build grub-efi)
-3. Storage -> mount `ali-linux-1.2.2-amd64.hybrid.iso`
+3. Storage -> mount `ali-linux-1.2.3-amd64.hybrid.iso`
 4. Start -> Try Live -> user `ali`, then double-click Debian Installer to install to disk.
 
 QEMU (faster check):
 ```powershell
-qemu-system-x86_64 -m 4096 -cdrom ali-linux-1.2.2-amd64.hybrid.iso -boot d -enable-hvm
+qemu-system-x86_64 -m 4096 -cdrom ali-linux-1.2.3-amd64.hybrid.iso -boot d -enable-hvm
 # with UEFI:
-qemu-system-x86_64 -m 4096 -bios "C:\Program Files\qemu\share\OVMF.fd" -cdrom ali-linux-1.2.2-amd64.hybrid.iso -boot d
+qemu-system-x86_64 -m 4096 -bios "C:\Program Files\qemu\share\OVMF.fd" -cdrom ali-linux-1.2.3-amd64.hybrid.iso -boot d
 ```
 
 Verify branding:

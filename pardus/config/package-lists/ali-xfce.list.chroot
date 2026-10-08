@@ -20,3 +20,5 @@ ufw
 unattended-upgrades
 iproute2
 libnotify-bin
+x11-utils
+redshift
