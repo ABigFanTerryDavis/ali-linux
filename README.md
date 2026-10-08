@@ -1,4 +1,4 @@
-# ALI Linux 1.3.7 - Debian trixie based, XFCE, amd64
+# ALI Linux 1.3.8 - Debian trixie based, XFCE, amd64
 
 Learning project. Visible rebrand only - underneath 100% Debian.
 
@@ -38,6 +38,7 @@ Learning project. Visible rebrand only - underneath 100% Debian.
 - 1.3.5 - (staged, NO PUSH until 1.3.9) Hymns v2 (real audio + 3 songs), ltask Startup tab, Notepad v2 (TR+find), ali-backup, boot report
 - 1.3.6 - (staged, NO PUSH until 1.3.9) Shrine screensaver, Updates tab, Thunar actions, ali-info v2, game corner
 - 1.3.7 - (staged, NO PUSH until 1.3.9) Power pack: ali-mirrors, Services boot toggles, governor buttons, preload, Notepad tabs
+- 1.3.8 - (staged, NO PUSH until 1.3.9) Hardening: pre-push audit, Notepad print, Hymns queue, updater dry-run
 
 ## Push checklist (1.3.9 push - DO NOT PUSH BEFORE 1.3.9)
 ```powershell

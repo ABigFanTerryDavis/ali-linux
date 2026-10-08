@@ -71,6 +71,11 @@ static const char *N_AMEN = "C5 D5 E5 G5 A5 G5 C6";
 
 static GtkWidget *now_label = NULL;
 static GtkWidget *vol_scale = NULL;
+static int queue_idx = 0;
+static int queue_on = 0;
+static const char *queue_beep[6];
+static const char *queue_pairs[6];
+static const char *queue_notes[6];
 
 static void play_hymn(const char *beep, const char *pairs) {
     int b = backend();
@@ -111,8 +116,66 @@ static void on_play(GtkButton *b, gpointer u) {
 
 static void on_stop(GtkButton *b, gpointer u) {
     (void)b; (void)u;
+    queue_on = 0;
     system("pkill -x beep 2>/dev/null; pkill -x play 2>/dev/null");
     gtk_label_set_text(GTK_LABEL(now_label), T("Stopped.", "Durduruldu."));
+}
+
+static void play_index(int i) {
+    char buf[256];
+    snprintf(buf, sizeof(buf), "%s (%d/6)\n%s",
+        T("Now playing:", "Şimdi çalıyor:"), i + 1, queue_notes[i]);
+    gtk_label_set_text(GTK_LABEL(now_label), buf);
+    play_hymn(queue_beep[i], queue_pairs[i]);
+}
+
+static void on_prev(GtkButton *b, gpointer u) {
+    (void)b; (void)u;
+    system("pkill -x beep 2>/dev/null; pkill -x play 2>/dev/null");
+    queue_on = 0;
+    queue_idx = (queue_idx + 5) % 6;
+    play_index(queue_idx);
+}
+
+static void on_next(GtkButton *b, gpointer u) {
+    (void)b; (void)u;
+    system("pkill -x beep 2>/dev/null; pkill -x play 2>/dev/null");
+    queue_on = 0;
+    queue_idx = (queue_idx + 1) % 6;
+    play_index(queue_idx);
+}
+
+static void on_playall(GtkButton *b, gpointer u) {
+    (void)b; (void)u;
+    /* one background shell, six songs chained; Stop (pkill) ends it */
+    char cmd[8192];
+    cmd[0] = '\0';
+    int bk = backend();
+    if (bk == 2) {
+        double v = gtk_range_get_value(GTK_RANGE(vol_scale)) / 100.0;
+        for (int i = 0; i < 6; i++) {
+            char one[1024];
+            snprintf(one, sizeof(one),
+                "%sfor p in %s; do play -q -v %.2f -n synth ${p##*:} sine ${p%%:*}; done",
+                i ? " ; " : "", queue_pairs[i], v);
+            strncat(cmd, one, sizeof(cmd) - strlen(cmd) - 1);
+        }
+    } else if (bk == 1) {
+        for (int i = 0; i < 6; i++) {
+            strncat(cmd, i ? " ; " : "", sizeof(cmd) - strlen(cmd) - 1);
+            strncat(cmd, queue_beep[i], sizeof(cmd) - strlen(cmd) - 1);
+        }
+    } else {
+        gtk_label_set_text(GTK_LABEL(now_label),
+            T("No sound backend (install sox or beep).",
+              "Ses altyapısı yok (sox ya da beep kur)."));
+        return;
+    }
+    queue_on = 0;
+    launch_bg(cmd);
+    gtk_label_set_text(GTK_LABEL(now_label),
+        T("Queue: all six, in order. Stop ends it.",
+          "Sıra: altı ilahi sırayla. Durdur bitirir."));
 }
 
 static void on_test(GtkButton *b, gpointer u) {
@@ -137,6 +200,7 @@ static GtkWidget *hymn_row(const char *title, const char *beep, const char *pair
     static int idx = 0;
     if (idx < 6) {
         sets[idx][0] = beep; sets[idx][1] = pairs; sets[idx][2] = notes;
+        queue_beep[idx] = beep; queue_pairs[idx] = pairs; queue_notes[idx] = notes;
     }
     GtkWidget *b = gtk_button_new_with_label(T("Play", "Çal"));
     g_signal_connect(b, "clicked", G_CALLBACK(on_play), (gpointer)sets[idx < 6 ? idx : 5]);
@@ -187,6 +251,18 @@ int main(int argc, char **argv) {
     gtk_range_set_value(GTK_RANGE(vol_scale), 80);
     gtk_box_pack_start(GTK_BOX(vrow), vol_scale, TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(box), vrow, FALSE, FALSE, 0);
+
+    GtkWidget *qrow = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+    GtkWidget *bprev = gtk_button_new_with_label(T("◀ Prev", "◀ Önceki"));
+    g_signal_connect(bprev, "clicked", G_CALLBACK(on_prev), NULL);
+    gtk_box_pack_start(GTK_BOX(qrow), bprev, TRUE, TRUE, 0);
+    GtkWidget *ball = gtk_button_new_with_label(T("Play All", "Tümünü Çal"));
+    g_signal_connect(ball, "clicked", G_CALLBACK(on_playall), NULL);
+    gtk_box_pack_start(GTK_BOX(qrow), ball, TRUE, TRUE, 0);
+    GtkWidget *bnext = gtk_button_new_with_label(T("Next ▶", "Sonraki ▶"));
+    g_signal_connect(bnext, "clicked", G_CALLBACK(on_next), NULL);
+    gtk_box_pack_start(GTK_BOX(qrow), bnext, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(box), qrow, FALSE, FALSE, 0);
 
     GtkWidget *row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
     GtkWidget *bs = gtk_button_new_with_label(T("Stop", "Durdur"));

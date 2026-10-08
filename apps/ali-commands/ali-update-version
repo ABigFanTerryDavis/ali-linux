@@ -16,6 +16,34 @@ current() {
   grep '^VERSION_ID=' /etc/os-release 2>/dev/null | cut -d'"' -f2
 }
 
+if [ "${1:-}" = "--check" ]; then
+    # dry run: report what WOULD change, touch nothing
+    T2="${2:-}"
+    [ -n "$T2" ] || { echo "usage: ali-update-version --check <target>" >&2; exit 1; }
+    echo "current layer: $(current)"
+    echo "target layer:  $T2"
+    code=$(curl -o /dev/null -s -w '%{http_code}' --max-time 10 \
+        "https://github.com/$REPO/archive/refs/tags/v$T2.tar.gz" 2>/dev/null)
+    if [ "$code" = "200" ]; then
+        echo "tag v$T2: published (would download + rebuild apps + install scripts/units + stamp version)"
+    else
+        echo "tag v$T2: NOT published (http $code) - nothing would happen"
+        exit 1
+    fi
+    if command -v gcc >/dev/null 2>&1 && pkg-config --exists gtk+-3.0 2>/dev/null; then
+        echo "build tools: present (gcc + gtk3)"
+    else
+        echo "build tools: MISSING (would install gcc make pkg-config libgtk-3-dev first)"
+    fi
+    for f in ali-update ali-info ali-perf ali-normal ali-mirrors ali-update-version ali-terminal ali-backup odysseus sentinel ali-sentinel terrydavis templeos ali-oracle ali-retro terry-dice ali-passgen ali-vault oracle; do
+        if [ -f "/usr/bin/$f" ]; then echo "would refresh: /usr/bin/$f"; else echo "would install: /usr/bin/$f"; fi
+    done
+    for unit in odysseus sentinel terrydavis templeos oracle; do
+        if systemctl is-active --quiet "$unit" 2>/dev/null; then echo "would restart: $unit (running)"; else echo "would restart: $unit (not running)"; fi
+    done
+    exit 0
+fi
+
 if [ -z "$TARGET" ]; then
   echo "usage: ali-update-version <target>   e.g. ali-update-version 1.2.6" >&2
   echo "current: $(current)" >&2

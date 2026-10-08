@@ -271,6 +271,37 @@ static void on_find_next(GtkMenuItem *m, gpointer u) {
     find_next(GTK_WINDOW(u));
 }
 
+static void on_print_draw(GtkPrintOperation *op, GtkPrintContext *ctx,
+    gint page, gpointer u) {
+    (void)op; (void)page;
+    GtkTextView *view = GTK_TEXT_VIEW(u);
+    GtkTextBuffer *tb = gtk_text_view_get_buffer(view);
+    GtkTextIter s, e;
+    gtk_text_buffer_get_bounds(tb, &s, &e);
+    char *txt = gtk_text_buffer_get_text(tb, &s, &e, FALSE);
+    PangoLayout *lo = gtk_print_context_create_pango_layout(ctx);
+    pango_layout_set_font_description(lo,
+        pango_font_description_from_string("Monospace 10"));
+    pango_layout_set_text(lo, txt ? txt : "", -1);
+    g_free(txt);
+    cairo_t *cr = gtk_print_context_get_cairo_context(ctx);
+    cairo_move_to(cr, 40, 40);
+    pango_cairo_show_layout(cr, lo);
+    g_object_unref(lo);
+}
+
+static void on_print(GtkMenuItem *m, gpointer u) {
+    (void)m;
+    GtkWindow *win = GTK_WINDOW(u);
+    if (!textview) return;
+    GtkPrintOperation *op = gtk_print_operation_new();
+    gtk_print_operation_set_job_name(op, T("ALI Notepad", "ALI Notepad"));
+    g_signal_connect(op, "draw-page", G_CALLBACK(on_print_draw), textview);
+    gtk_print_operation_run(op, GTK_PRINT_OPERATION_ACTION_PRINT_DIALOG,
+        win, NULL);
+    g_object_unref(op);
+}
+
 int main(int argc, char **argv) {
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--tr") == 0) { LANG_TR = 1; break; }
@@ -314,6 +345,7 @@ int main(int argc, char **argv) {
     GtkWidget *i_save = gtk_menu_item_new_with_label(T("Save", "Kaydet"));
     GtkWidget *i_saveas = gtk_menu_item_new_with_label(T("Save As...", "Farklı Kaydet..."));
     GtkWidget *i_quit = gtk_menu_item_new_with_label(T("Quit", "Çık"));
+    GtkWidget *i_print = gtk_menu_item_new_with_label(T("Print...", "Yazdır..."));
     GtkWidget *i_close = gtk_menu_item_new_with_label(T("Close Tab", "Sekmeyi Kapat"));
     GtkWidget *i_find = gtk_menu_item_new_with_label(T("Find...", "Bul..."));
     GtkWidget *i_next = gtk_menu_item_new_with_label(T("Find Next", "Sonrakini Bul"));
@@ -323,6 +355,7 @@ int main(int argc, char **argv) {
     gtk_menu_shell_append(GTK_MENU_SHELL(fmenu), i_save);
     gtk_menu_shell_append(GTK_MENU_SHELL(fmenu), i_saveas);
     gtk_menu_shell_append(GTK_MENU_SHELL(fmenu), gtk_separator_menu_item_new());
+    gtk_menu_shell_append(GTK_MENU_SHELL(fmenu), i_print);
     gtk_menu_shell_append(GTK_MENU_SHELL(fmenu), i_close);
     gtk_menu_shell_append(GTK_MENU_SHELL(fmenu), i_quit);
     gtk_menu_shell_append(GTK_MENU_SHELL(emenu), i_find);
@@ -335,6 +368,7 @@ int main(int argc, char **argv) {
     g_signal_connect(i_open, "activate", G_CALLBACK(on_open), win);
     g_signal_connect(i_save, "activate", G_CALLBACK(on_save), win);
     g_signal_connect(i_saveas, "activate", G_CALLBACK(on_saveas), win);
+    g_signal_connect(i_print, "activate", G_CALLBACK(on_print), win);
     g_signal_connect(i_close, "activate", G_CALLBACK(on_close_tab), win);
     g_signal_connect(i_quit, "activate", G_CALLBACK(gtk_main_quit), NULL);
     g_signal_connect(i_about, "activate", G_CALLBACK(on_about), win);
@@ -355,6 +389,7 @@ int main(int argc, char **argv) {
     gtk_widget_add_accelerator(i_save, "activate", ag, GDK_KEY_s, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
     gtk_widget_add_accelerator(i_close, "activate", ag, GDK_KEY_w, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
     gtk_widget_add_accelerator(i_find, "activate", ag, GDK_KEY_f, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
+    gtk_widget_add_accelerator(i_print, "activate", ag, GDK_KEY_p, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
 
     /* one tab per file argument (ali-notepad a.txt b.txt), else blank */
     {
