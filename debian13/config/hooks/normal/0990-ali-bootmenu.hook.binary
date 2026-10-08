@@ -41,11 +41,11 @@ if [ -n "$KIMG" ] && [ -n "$IIMG" ]; then
       cat >> "$g" <<EOF || true
 
 # ALI-Performance-Mode - appended by 0990-ali-bootmenu hook
-menuentry 'ALI Linux 1.3.2 - Normal Mode' {
+menuentry 'ALI Linux 1.3.3 - Normal Mode' {
   linux /live/$KBASE $NORMAL_PARAMS
   initrd /live/$IBASE
 }
-menuentry 'ALI Linux 1.3.2 - Performance Mode' {
+menuentry 'ALI Linux 1.3.3 - Performance Mode' {
   linux /live/$KBASE $PERF_PARAMS
   initrd /live/$IBASE
 }
@@ -59,13 +59,13 @@ EOF
       for cfg in "$cfgdir"/*.cfg; do
         [ -f "$cfg" ] || continue
         if grep -q "boot=live" "$cfg" 2>/dev/null; then
-          sed -i '0,/menu label \(\^\)\?Live/s//menu label ^ALI Linux 1.3.2 - Normal Mode/' "$cfg" 2>/dev/null || true
+          sed -i '0,/menu label \(\^\)\?Live/s//menu label ^ALI Linux 1.3.3 - Normal Mode/' "$cfg" 2>/dev/null || true
           if ! grep -q "ALI-Performance-Mode" "$cfg" 2>/dev/null; then
             cat >> "$cfg" <<EOF || true
 
 # ALI-Performance-Mode - appended by 0990-ali-bootmenu hook
 label live-performance
-  menu label ^ALI Linux 1.3.2 - Performance Mode
+  menu label ^ALI Linux 1.3.3 - Performance Mode
   kernel /live/$KBASE
   append initrd=/live/$IBASE $PERF_PARAMS
 EOF

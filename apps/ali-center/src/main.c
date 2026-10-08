@@ -26,7 +26,7 @@ static const char *T(const char *en, const char *tr) { return LANG_TR ? tr : en;
 
 static void read_os_pretty(char *out, size_t n) {
     FILE *f = fopen("/etc/os-release", "r");
-    snprintf(out, n, "ALI Linux 1.3.2");
+    snprintf(out, n, "ALI Linux 1.3.3");
     if (!f) return;
     char line[256];
     while (fgets(line, sizeof(line), f)) {
@@ -185,6 +185,49 @@ static void on_security_refresh(GtkButton *b, gpointer u) {
 static void on_scan_clicked(GtkButton *b, gpointer u) {
     (void)b; (void)u;
     launch_async("x-terminal-emulator -e 'sudo sentinel --once; echo; echo --- feed ---; tail -n 10 /run/ali-security; echo; read -n1 -p \"press any key\"'");
+}
+
+/* --- Firewall controls (1.3.3): ufw status + unblock + allow-port --- */
+static void on_unblock_clicked(GtkButton *b, gpointer u) {
+    (void)b; (void)u;
+    GtkWidget *d = gtk_dialog_new_with_buttons(T("Unblock IP", "Engeli Kaldır"),
+        NULL, GTK_DIALOG_MODAL, T("_Cancel", "_Vazgeç"), GTK_RESPONSE_CANCEL,
+        T("_Unblock", "_Kaldır"), GTK_RESPONSE_ACCEPT, NULL);
+    GtkWidget *e = gtk_entry_new();
+    gtk_entry_set_placeholder_text(GTK_ENTRY(e), "1.2.3.4");
+    gtk_container_add(GTK_CONTAINER(gtk_dialog_get_content_area(GTK_DIALOG(d))), e);
+    gtk_widget_show_all(d);
+    if (gtk_dialog_run(GTK_DIALOG(d)) == GTK_RESPONSE_ACCEPT) {
+        const char *ip = gtk_entry_get_text(GTK_ENTRY(e));
+        if (ip && *ip) {
+            char cmd[256];
+            snprintf(cmd, sizeof(cmd),
+                "x-terminal-emulator -e 'sudo ufw delete deny from %s; echo; read -n1 -p \"done\"'", ip);
+            launch_async(cmd);
+        }
+    }
+    gtk_widget_destroy(d);
+}
+
+static void on_allow_clicked(GtkButton *b, gpointer u) {
+    (void)b; (void)u;
+    GtkWidget *d = gtk_dialog_new_with_buttons(T("Allow Port", "Porta İzin Ver"),
+        NULL, GTK_DIALOG_MODAL, T("_Cancel", "_Vazgeç"), GTK_RESPONSE_CANCEL,
+        T("_Allow", "_İzin Ver"), GTK_RESPONSE_ACCEPT, NULL);
+    GtkWidget *e = gtk_entry_new();
+    gtk_entry_set_placeholder_text(GTK_ENTRY(e), "22");
+    gtk_container_add(GTK_CONTAINER(gtk_dialog_get_content_area(GTK_DIALOG(d))), e);
+    gtk_widget_show_all(d);
+    if (gtk_dialog_run(GTK_DIALOG(d)) == GTK_RESPONSE_ACCEPT) {
+        const char *port = gtk_entry_get_text(GTK_ENTRY(e));
+        if (port && atoi(port) > 0) {
+            char cmd[256];
+            snprintf(cmd, sizeof(cmd),
+                "x-terminal-emulator -e 'sudo ufw allow %d; echo; read -n1 -p \"done\"'", atoi(port));
+            launch_async(cmd);
+        }
+    }
+    gtk_widget_destroy(d);
 }
 
 /* --- Terry's Dice in the Security tab (1.3.0) --- */
@@ -366,6 +409,25 @@ int main(int argc, char **argv) {
             GtkWidget *b3 = gtk_button_new_with_label(T("Generate Password", "Parola Üret"));
             g_signal_connect(b3, "clicked", G_CALLBACK(on_passgen_clicked), NULL);
             gtk_box_pack_start(GTK_BOX(box), b3, FALSE, FALSE, 0);
+            /* Firewall row: live status + unblock + allow */
+            {
+                char *fw = run_capture("sudo -n ufw status 2>/dev/null | head -1");
+                char fwline[256];
+                snprintf(fwline, sizeof(fwline), "%s: %s",
+                    T("Firewall", "Güvenlik Duvarı"),
+                    fw ? fw : T("(run once in terminal: sudo ufw status)",
+                                "(uçbirimde bir kez çalıştır: sudo ufw status)"));
+                GtkWidget *fl = gtk_label_new(fwline);
+                gtk_box_pack_start(GTK_BOX(box), fl, FALSE, FALSE, 0);
+                GtkWidget *frow = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+                GtkWidget *b4 = gtk_button_new_with_label(T("Unblock IP…", "Engel Kaldır…"));
+                g_signal_connect(b4, "clicked", G_CALLBACK(on_unblock_clicked), NULL);
+                gtk_box_pack_start(GTK_BOX(frow), b4, TRUE, TRUE, 0);
+                GtkWidget *b5 = gtk_button_new_with_label(T("Allow Port…", "Port Aç…"));
+                g_signal_connect(b5, "clicked", G_CALLBACK(on_allow_clicked), NULL);
+                gtk_box_pack_start(GTK_BOX(frow), b5, TRUE, TRUE, 0);
+                gtk_box_pack_start(GTK_BOX(box), frow, FALSE, FALSE, 0);
+            }
         }
         gtk_notebook_append_page(GTK_NOTEBOOK(nb), box, tab_label_page(T("Security", "Güvenlik")));
     }
@@ -375,7 +437,7 @@ int main(int argc, char **argv) {
         GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
         gtk_container_set_border_width(GTK_CONTAINER(box), 16);
         char about[512];
-        snprintf(about, sizeof(about), "ALI Linux 1.3.2\nXFCE - amd64.\n\nALI Center 1.3.2 - C + GTK3 (+ Sentinel Security tab).");
+        snprintf(about, sizeof(about), "ALI Linux 1.3.3\nXFCE - amd64.\n\nALI Center 1.3.3 - C + GTK3 (+ Sentinel Security tab).");
         char *vs = read_file_all("/run/templeos-oracle");
         if (vs) {
             char *vl = strstr(vs, "verse=");

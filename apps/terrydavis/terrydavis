@@ -12,6 +12,8 @@
 #   9. Crash catcher: fresh coredumps become a visible ping (hourly).
 #  10. Battery brain: powersave on battery, restore on AC, low-battery
 #      alarm (1m). Game mode and Performance boot entry always win.
+#  11. Wallpaper rotation: hourly cycle through OUR wallpapers, never
+#      stomping a custom one (1h). Crier also relays Oracle verdicts.
 set -u
 STATE=/var/lib/terrydavis
 STATUS=/run/terrydavis-status
@@ -171,6 +173,18 @@ crier() {
                 log "cried about: $n updates"
             fi ;;
         esac
+    fi
+    # Oracle verdicts -> ping each new one (the oracle speaks, we knock)
+    if [ -f /run/ali-oracle ]; then
+        last=$(grep -a '\[verdict\]' /run/ali-oracle 2>/dev/null | tail -n1)
+        oldv=$(cat "$STATE/notified.verdict" 2>/dev/null)
+        if [ -n "$last" ] && [ "$last" != "$oldv" ]; then
+            short=$(printf '%s' "$last" | cut -c1-140)
+            ping "ALI Oracle" "$short"
+            printf '%s' "$last" > "$STATE/notified.verdict"
+            echo "oracle verdict" > "$STATE/last-notice"
+            log "cried about: oracle verdict"
+        fi
     fi
     write_status
 }
@@ -347,6 +361,38 @@ night_check() {
     fi
 }
 
+wallpaper() {
+    # hourly rotation through OUR wallpapers only. A custom wallpaper
+    # is sacred: if the user changed it, we touch nothing.
+    if ! command -v xfconf-query >/dev/null 2>&1; then return 0; fi
+    if ! id ali >/dev/null 2>&1; then return 0; fi
+    ours=""
+    for f in /usr/share/backgrounds/ali/*.jpg; do
+        [ -f "$f" ] && ours="$ours $f"
+    done
+    [ -n "$ours" ] || return 0
+    cur=$(sudo -u ali DISPLAY=:0 xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/last-image 2>/dev/null)
+    case "$ours" in *"$cur"*) ;; *) return 0 ;; esac
+    n=0; pick=""; total=0
+    for f in $ours; do total=$((total + 1)); done
+    idx=$(cat "$STATE/wallpaper.idx" 2>/dev/null || echo 0)
+    case "$idx" in ''|*[!0-9]*) idx=0 ;; esac
+    idx=$(( (idx + 1) % total ))
+    echo "$idx" > "$STATE/wallpaper.idx"
+    i=0
+    for f in $ours; do
+        if [ "$i" = "$idx" ]; then pick="$f"; break; fi
+        i=$((i + 1))
+    done
+    [ -n "$pick" ] || return 0
+    for ws in 0 1 2 3; do
+        sudo -u ali DISPLAY=:0 xfconf-query -c xfce4-desktop \
+            -p /backdrop/screen0/monitor0/workspace$ws/last-image -s "$pick" 2>/dev/null || true
+    done
+    log "wallpaper rotated to $(basename $pick)"
+    write_status
+}
+
 sorter() {
     [ -d "$DL_DIR" ] || return 0
     moved=0
@@ -386,6 +432,7 @@ announce_once() {
     coffee_check
     battery_check
     night_check
+    wallpaper
     sorter
     crash_check
     write_status
@@ -414,7 +461,7 @@ welcome_back() {
 case "${1:-}" in
     --once) announce_once ;;
     --welcome) welcome_back ;;
-    *)  log "starting (QoL: janitor + crier + usb + game + wifi + night + sorter + coffee + crash + battery)"
+    *)  log "starting (QoL: janitor + crier + usb + game + wifi + night + sorter + coffee + crash + battery + wallpaper)"
         write_status
         n=0
         w=0
@@ -435,6 +482,7 @@ case "${1:-}" in
                 janitor
                 crier
                 night_check
+                wallpaper
                 crash_check
             fi
             sleep "$FAST"

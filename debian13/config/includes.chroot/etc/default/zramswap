@@ -1,0 +1,5 @@
+# ALI zram swap (1.3.3) - compressed RAM swap for live-session snap,
+# kindly to 4GB machines. zram-tools reads this file.
+ALGO=zstd
+PERCENT=50
+PRIORITY=100

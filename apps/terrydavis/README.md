@@ -1,4 +1,4 @@
-# terrydavis 1.3.0 - ALI QoL daemon (10 duties)
+# terrydavis 1.3.3 - ALI QoL daemon (11 duties)
 
 Named for Terry Davis: software with soul. Quiet background comfort:
 
@@ -28,6 +28,9 @@ Named for Terry Davis: software with soul. Quiet background comfort:
 10. **Battery brain** (every 1m) - powersave governor while discharging,
     restored on AC, urgent ping at 15% (once per discharge). Game mode
     and Performance boot entry always win.
+11. **Wallpaper rotation** (hourly) - cycles `/usr/share/backgrounds/ali/`,
+    skipping the moment the user picks their own. The crier also relays
+    fresh Oracle `[verdict]` lines as desktop pings.
 
 Needs: `x11-utils` (xprop), `redshift`, `network-manager` (nmcli).
 

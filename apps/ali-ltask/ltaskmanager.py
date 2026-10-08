@@ -72,6 +72,15 @@ TRMAP = {
     "Suspend": "Askıya Al",
     "Resume": "Sürdür",
     "Copy PID / Command": "PID / Komut Kopyala",
+    "Services": "Hizmetler",
+    "Service": "Hizmet",
+    "Description": "Açıklama",
+    "Start": "Başlat",
+    "Stop": "Durdur",
+    "Restart": "Yeniden Başlat",
+    "Load": "Yük",
+    "Active": "Etkin",
+    "Sub": "Alt",
     "CPU detail": "CPU ayrıntı",
     "Memory detail": "Bellek ayrıntı",
     "Disk detail": "Disk ayrıntı",
@@ -275,6 +284,124 @@ class PerformanceWidget(QWidget):
             self.disk_bar.setValue(int(disk.percent))
 
 
+# ================= SERVICES WIDGET (1.3.3) =================
+ALI_SERVICES = [
+    ("odysseus.service", "First up, last down: enforcer, watchdog, sea"),
+    ("sentinel.service", "IDS watch + IPS exterminate"),
+    ("terrydavis.service", "QoL daemon: janitor, crier, game, wifi, battery"),
+    ("templeos.service", "Tribute daemon: oracle lots + verse"),
+    ("oracle.service", "Security voice: verdicts + lots"),
+]
+
+class ServicesWidget(QWidget):
+    def __init__(self):
+        super().__init__()
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(12, 12, 12, 12)
+        title = QLabel(_("Services"))
+        title.setStyleSheet("font-size: 18px; font-weight: bold; padding: 4px;")
+        layout.addWidget(title)
+
+        self.table = QTableWidget(0, 5)
+        self.table.setHorizontalHeaderLabels([_("Service"), _("Load"), _("Active"), _("Sub"), _("Description")])
+        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Interactive)
+        self.table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
+        self.table.setColumnWidth(0, 220)
+        self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.table.setAlternatingRowColors(True)
+        layout.addWidget(self.table)
+
+        row = QHBoxLayout()
+        self.refresh_btn = QPushButton(_("Refresh"))
+        self.refresh_btn.clicked.connect(self.refresh)
+        row.addWidget(self.refresh_btn)
+        self.start_btn = QPushButton(_("Start"))
+        self.start_btn.clicked.connect(lambda: self.act("start"))
+        row.addWidget(self.start_btn)
+        self.stop_btn = QPushButton(_("Stop"))
+        self.stop_btn.clicked.connect(lambda: self.act("stop"))
+        row.addWidget(self.stop_btn)
+        self.restart_btn = QPushButton(_("Restart"))
+        self.restart_btn.clicked.connect(lambda: self.act("restart"))
+        row.addWidget(self.restart_btn)
+        layout.addLayout(row)
+
+        self.status = QLabel("")
+        self.status.setStyleSheet("color: #666; font-size: 11px;")
+        layout.addWidget(self.status)
+
+    def _unit_state(self, unit):
+        try:
+            a = subprocess.run(["systemctl", "is-active", unit],
+                               capture_output=True, text=True, timeout=5)
+            active = a.stdout.strip() or "unknown"
+        except Exception:
+            active = "unknown"
+        return ("loaded", active, active, "")
+
+    def refresh(self):
+        self.table.setRowCount(0)
+        rows = []
+        for unit, desc in ALI_SERVICES:
+            load, active, sub, _d = self._unit_state(unit)
+            rows.append((unit, load, active, sub, desc))
+        try:
+            out = subprocess.run(["systemctl", "list-units", "--type=service",
+                                  "--all", "--no-legend", "--plain"],
+                                 capture_output=True, text=True, timeout=10)
+            for line in out.stdout.splitlines():
+                parts = line.split(None, 4)
+                if len(parts) >= 4 and parts[0].endswith(".service"):
+                    if parts[0] in [u for u, _d in ALI_SERVICES]:
+                        continue
+                    desc = parts[4] if len(parts) > 4 else ""
+                    rows.append((parts[0], parts[1], parts[2], parts[3], desc))
+        except Exception as e:
+            self.status.setText(f"{_('Error')}: {e}")
+            return
+        self.table.setRowCount(len(rows))
+        for i, (u, lo, ac, su, de) in enumerate(rows):
+            for j, val in enumerate([u, lo, ac, su, de]):
+                it = QTableWidgetItem(val)
+                it.setFlags(it.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                if j == 2:
+                    if ac == "active":
+                        it.setForeground(QBrush(QColor("darkgreen")))
+                    elif ac in ("failed", "inactive"):
+                        it.setForeground(QBrush(QColor("red")))
+                self.table.setItem(i, j, it)
+        self.status.setText(f"{len(rows)} {_('Services').lower()}" if not TR else f"{len(rows)} hizmet")
+
+    def selected_unit(self):
+        row = self.table.currentRow()
+        if row < 0:
+            return None
+        item = self.table.item(row, 0)
+        return item.text() if item else None
+
+    def act(self, action):
+        unit = self.selected_unit()
+        if not unit:
+            return
+        if action == "stop":
+            if QMessageBox.question(self, _("Stop"), f"Stop service '{unit}'?" if not TR else f"'{unit}' hizmeti durdurulsun mu?") != QMessageBox.StandardButton.Yes:
+                return
+        try:
+            r = subprocess.run(["pkexec", "systemctl", action, unit],
+                               capture_output=True, text=True, timeout=30)
+            if r.returncode != 0:
+                r = subprocess.run(["sudo", "systemctl", action, unit],
+                                   capture_output=True, text=True, timeout=30)
+            if r.returncode == 0:
+                self.status.setText(f"{action}ed {unit}" if not TR else f"{unit}: {action} tamam")
+            else:
+                raise Exception(r.stderr.strip() or "failed")
+        except Exception as e:
+            QMessageBox.warning(self, _("Error"), str(e))
+        self.refresh()
+
+
 class ProcessManager(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -305,7 +432,8 @@ class ProcessManager(QMainWindow):
 
         self.btn_proc = QPushButton("  ◉  " + _("Processes"))
         self.btn_perf = QPushButton("  ◈  " + _("Performance"))
-        for b in [self.btn_proc, self.btn_perf]:
+        self.btn_svc = QPushButton("  ⚙  " + _("Services"))
+        for b in [self.btn_proc, self.btn_perf, self.btn_svc]:
             b.setFixedHeight(42)
             b.setCursor(Qt.CursorShape.PointingHandCursor)
             b.setStyleSheet("""
@@ -317,6 +445,7 @@ class ProcessManager(QMainWindow):
         """)
         sb_layout.addWidget(self.btn_proc)
         sb_layout.addWidget(self.btn_perf)
+        sb_layout.addWidget(self.btn_svc)
         sb_layout.addStretch()
         sb_footer = QLabel("ALI Linux • PyQt6")
         sb_footer.setStyleSheet("color: #9aa0a6; font-size: 10px; padding: 6px;")
@@ -427,13 +556,18 @@ class ProcessManager(QMainWindow):
         # PAGE 1: PERFORMANCE
         self.page_perf = PerformanceWidget()
 
+        # PAGE 2: SERVICES
+        self.page_svc = ServicesWidget()
+
         self.stack.addWidget(self.page_proc)
         self.stack.addWidget(self.page_perf)
+        self.stack.addWidget(self.page_svc)
         self.stack.setCurrentIndex(0)
 
         # sidebar switching
         self.btn_proc.clicked.connect(lambda: self.switch_tab(0))
         self.btn_perf.clicked.connect(lambda: self.switch_tab(1))
+        self.btn_svc.clicked.connect(lambda: self.switch_tab(2))
 
         # Timer for processes
         self.timer = QTimer(self)
@@ -456,6 +590,9 @@ class ProcessManager(QMainWindow):
         inactive = "QPushButton { text-align: left; padding-left: 12px; color: #e8eaed; background: transparent; border: none; font-size: 13px; border-radius: 6px;}"
         self.btn_proc.setStyleSheet(active if idx==0 else inactive)
         self.btn_perf.setStyleSheet(active if idx==1 else inactive)
+        self.btn_svc.setStyleSheet(active if idx==2 else inactive)
+        if idx == 2:
+            self.page_svc.refresh()
 
     def on_sort_changed(self, text):
         idx = self.sort_combo.currentIndex()
