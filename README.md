@@ -1,4 +1,4 @@
-# ALI Linux 1.1.6 - Debian trixie based, XFCE, amd64 (+ Pardus variant)
+# ALI Linux 1.2.0 - Debian trixie based, XFCE, amd64 (+ Pardus variant)
 
 Learning project. Visible rebrand only - underneath 100% Debian.
 
@@ -19,15 +19,16 @@ Learning project. Visible rebrand only - underneath 100% Debian.
 - 1.1.3 - (staged, no push until 1.1.6) ufw firewall, unattended-upgrades, ali-update-version (no wine)
 - 1.1.4 - (staged, no push until 1.1.6) debian13/+pardus/ split, shared apps/, Pardus 25 scaffold (repos disabled, no CI yet)
 - 1.1.5 - (staged, no push until 1.1.6) pardus fully ALI: synced updater, Pardus welcome/logo, fastfetch+ufw verified
-- 1.1.6 - PUSH: Pardus keyring + repos enabled + pardus CI job (2 ISOs)
+- 1.1.6 - PUSHED: Pardus keyring + repos enabled + pardus CI job (2 ISOs) + b43 pin fix
+- 1.2.0 - (staged, NO PUSH until 1.2.8) ALI Sentinel: IDS alerts + IPS auto-block, Center Security tab, ali-sentinel CLI
 
-## Pre-push checklist (1.1.6 push)
+## Pre-push checklist (1.2.8 push - DO NOT PUSH BEFORE 1.2.8)
 ```powershell
 git add .
 git status --short
 git diff --cached --stat
 # review, then ONE commit + push = ONE 30-40 min workflow run
-git commit -m "ALI Linux 1.1.6 batch: 1.0.7-1.1.6 + Pardus variant"
+git commit -m "ALI Linux 1.2.x batch: 1.2.0-1.2.8"
 git push -u origin main
 ```
 
@@ -51,14 +52,14 @@ Wait 20-40 min. Download artifact `ali-linux-iso`.
 VirtualBox:
 1. New -> Linux Debian 64-bit, 4GB RAM, 20GB VDI
 2. Settings -> System -> EFI: ON (we build grub-efi)
-3. Storage -> mount `ali-linux-1.1.6-amd64.hybrid.iso`
+3. Storage -> mount `ali-linux-1.2.0-amd64.hybrid.iso`
 4. Start -> Try Live -> user `ali`, then double-click Debian Installer to install to disk.
 
 QEMU (faster check):
 ```powershell
-qemu-system-x86_64 -m 4096 -cdrom ali-linux-1.1.6-amd64.hybrid.iso -boot d -enable-hvm
+qemu-system-x86_64 -m 4096 -cdrom ali-linux-1.2.0-amd64.hybrid.iso -boot d -enable-hvm
 # with UEFI:
-qemu-system-x86_64 -m 4096 -bios "C:\Program Files\qemu\share\OVMF.fd" -cdrom ali-linux-1.1.6-amd64.hybrid.iso -boot d
+qemu-system-x86_64 -m 4096 -bios "C:\Program Files\qemu\share\OVMF.fd" -cdrom ali-linux-1.2.0-amd64.hybrid.iso -boot d
 ```
 
 Verify branding:
@@ -70,8 +71,8 @@ fastfetch
 
 ## Structure
 - `debian13/auto/config` - Debian trixie live-build (the image CI builds)
-- `pardus/` - Pardus 25 variant scaffold (EXPERIMENTAL, no CI yet - see `pardus/README-VARIANT.md`)
-- `apps/` - shared ALI apps (Center, Notepad, Terminal, commands, Odysseus)
+- `pardus/` - Pardus 25 variant (repos enabled, CI builds 2nd ISO - see `pardus/README-VARIANT.md`)
+- `apps/` - shared ALI apps (Center, Notepad, Terminal, commands, Odysseus, Sentinel)
 - `debian13/config/package-lists/ali-xfce.list.chroot` - XFCE pkgs
 - `debian13/config/includes.chroot/etc/` - os-release, hostname, motd
 - `debian13/config/hooks/normal/0099-ali-branding.hook.chroot` - enforces branding

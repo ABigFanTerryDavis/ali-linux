@@ -18,3 +18,5 @@ fastfetch
 libgtk-3-0
 ufw
 unattended-upgrades
+iproute2
+libnotify-bin

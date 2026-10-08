@@ -1,0 +1,14 @@
+[Unit]
+Description=ALI Sentinel - IDS watch + IPS exterminate
+Documentation=https://github.com/
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/sentinel
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

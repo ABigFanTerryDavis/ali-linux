@@ -22,7 +22,7 @@ static void launch_async(const char *cmd) {
 
 static void read_os_pretty(char *out, size_t n) {
     FILE *f = fopen("/etc/os-release", "r");
-    snprintf(out, n, "ALI Linux 1.1.6");
+    snprintf(out, n, "ALI Linux 1.2.0");
     if (!f) return;
     char line[256];
     while (fgets(line, sizeof(line), f)) {
@@ -143,6 +143,40 @@ static void on_status_refresh(GtkButton *b, gpointer u) {
     gtk_label_set_text(GTK_LABEL(u), build_status_text());
 }
 
+/* --- Sentinel (IDS alerts + IPS blocks) --- */
+static char sentinel_buf[4096];
+static const char *build_security_text(void) {
+    GString *s = g_string_new(NULL);
+    char *feed = read_file_all("/run/ali-security");
+    if (feed) {
+        g_string_append(s, "Sentinel: running (IDS watch + IPS exterminate)\n\n");
+        /* last 15 lines of feed */
+        int total = 0;
+        for (char *p = feed; *p; p++) if (*p == '\n') total++;
+        char *p = feed;
+        int skip = total > 15 ? total - 15 : 0;
+        while (skip > 0 && *p) { if (*p == '\n') skip--; p++; }
+        g_string_append(s, p);
+        free(feed);
+    } else {
+        g_string_append(s, "Sentinel: not running\n(starts at boot on ALI Linux 1.2.0+)\n");
+    }
+    g_string_append(s, "\nManage from terminal: ali-sentinel status|events|blocked|unblock <ip>|learn|check|kill <pid>");
+    snprintf(sentinel_buf, sizeof(sentinel_buf), "%s", s->str);
+    g_string_free(s, TRUE);
+    return sentinel_buf;
+}
+
+static void on_security_refresh(GtkButton *b, gpointer u) {
+    (void)b;
+    gtk_label_set_text(GTK_LABEL(u), build_security_text());
+}
+
+static void on_scan_clicked(GtkButton *b, gpointer u) {
+    (void)b; (void)u;
+    launch_async("x-terminal-emulator -e 'sudo sentinel --once; echo; echo --- feed ---; tail -n 10 /run/ali-security; echo; read -n1 -p \"press any key\"'");
+}
+
 int main(int argc, char **argv) {
     gtk_init(&argc, &argv);
 
@@ -237,11 +271,30 @@ int main(int argc, char **argv) {
         gtk_notebook_append_page(GTK_NOTEBOOK(nb), box, tab_label_page("Status"));
     }
 
+    /* --- Security tab (Sentinel IDS/IPS) --- */
+    {
+        GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
+        gtk_container_set_border_width(GTK_CONTAINER(box), 16);
+        GtkWidget *l = gtk_label_new(NULL);
+        gtk_label_set_selectable(GTK_LABEL(l), TRUE);
+        gtk_label_set_text(GTK_LABEL(l), build_security_text());
+        gtk_box_pack_start(GTK_BOX(box), l, FALSE, FALSE, 0);
+        GtkWidget *row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+        GtkWidget *b1 = gtk_button_new_with_label("Refresh");
+        g_signal_connect(b1, "clicked", G_CALLBACK(on_security_refresh), l);
+        gtk_box_pack_start(GTK_BOX(row), b1, TRUE, TRUE, 0);
+        GtkWidget *b2 = gtk_button_new_with_label("Run Scan Now");
+        g_signal_connect(b2, "clicked", G_CALLBACK(on_scan_clicked), NULL);
+        gtk_box_pack_start(GTK_BOX(row), b2, TRUE, TRUE, 0);
+        gtk_box_pack_start(GTK_BOX(box), row, FALSE, FALSE, 0);
+        gtk_notebook_append_page(GTK_NOTEBOOK(nb), box, tab_label_page("Security"));
+    }
+
     /* --- About tab --- */
     {
         GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
         gtk_container_set_border_width(GTK_CONTAINER(box), 16);
-        GtkWidget *l = gtk_label_new("ALI Linux 1.1.6\nXFCE - amd64.\n\nALI Center v1 - C + GTK3.");
+        GtkWidget *l = gtk_label_new("ALI Linux 1.2.0\nXFCE - amd64.\n\nALI Center 1.2.0 - C + GTK3 (+ Sentinel Security tab).");
         gtk_box_pack_start(GTK_BOX(box), l, FALSE, FALSE, 0);
         gtk_notebook_append_page(GTK_NOTEBOOK(nb), box, tab_label_page("About"));
     }

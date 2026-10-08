@@ -1,0 +1,127 @@
+#!/bin/sh
+# sentinel - ALI Sentinel security daemon (IDS + IPS in one)
+# IDS half: watches logins, ports, processes, system files -> alerts user.
+# IPS half: brute-force IPs get firewall-exterminated on sight.
+# Loop/scan engine. Run as root via sentinel.service. `sentinel --once` for CLI.
+set -u
+STATE=/var/lib/ali-sentinel
+FEED=/run/ali-security
+LOG=/var/log/sentinel.log
+THRESHOLD=5
+INTERVAL=60
+WATCH_FILES="/etc/passwd /etc/group /etc/shadow /etc/sudoers /etc/ssh/sshd_config /etc/crontab /etc/hosts"
+BAD_NAMES="xmrig|minerd|cpuminer|hashcat|mimikatz|ransom|keylog|rootkit"
+
+mkdir -p "$STATE"
+touch "$FEED" "$LOG" 2>/dev/null || true
+
+event() {
+    # $1 = severity (INFO/BLOCKED/ALERT), $2... = message
+    sev="$1"; shift
+    msg="$*"
+    line="$(date '+%F %T') [$sev] $msg"
+    echo "$line" >> "$LOG"
+    echo "$line" >> "$FEED"
+    tail -n 50 "$FEED" > "$FEED.tmp" && mv "$FEED.tmp" "$FEED"
+    # desktop ping, best effort (live user ali, uid 1000)
+    if command -v notify-send >/dev/null 2>&1 && id ali >/dev/null 2>&1; then
+        uid=$(id -u ali)
+        sudo -u ali DISPLAY=:0 DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${uid}/bus" \
+            notify-send "ALI Sentinel [$sev]" "$msg" 2>/dev/null || true
+    fi
+    logger -t sentinel "[$sev] $msg" 2>/dev/null || true
+}
+
+blocked_already() {
+    ufw status 2>/dev/null | grep -q "DENY.*$1"
+}
+
+scan_logins() {
+    [ -f /var/log/auth.log ] || return 0
+    # new bytes only (rotation-safe via offset+inode)
+    inode=$(stat -c %i /var/log/auth.log 2>/dev/null)
+    size=$(stat -c %s /var/log/auth.log 2>/dev/null)
+    off=0; old_inode=""
+    [ -f "$STATE/auth.off" ] && read -r old_inode off < "$STATE/auth.off" 2>/dev/null
+    case "$off" in ''|*[!0-9]*) off=0 ;; esac
+    if [ "$inode" != "$old_inode" ] || [ "$size" -lt "$off" ]; then off=0; fi
+    new=$(tail -c +"$((off + 1))" /var/log/auth.log 2>/dev/null | grep -a "Failed password" | grep -aoE 'from [0-9a-fA-F.:]+' | awk '{print $2}' | sort | uniq -c | sort -rn)
+    echo "$inode $size" > "$STATE/auth.off"
+    [ -z "$new" ] && return 0
+    echo "$new" | while read -r count ip; do
+        [ -z "$ip" ] && continue
+        case "$ip" in 127.*|::1) continue ;; esac
+        if [ "$count" -ge "$THRESHOLD" ]; then
+            if blocked_already "$ip"; then continue; fi
+            if ufw deny from "$ip" comment 'sentinel brute-force' >/dev/null 2>&1; then
+                event BLOCKED "exterminated brute-force IP $ip ($count failed logins)"
+            else
+                event ALERT "could not block brute-force IP $ip ($count failed logins)"
+            fi
+        fi
+    done
+}
+
+scan_ports() {
+    cur="$STATE/ports.cur"
+    if command -v ss >/dev/null 2>&1; then
+        ss -tlnH 2>/dev/null | awk '{print $4}' | sort -u > "$cur"
+    else
+        return 0
+    fi
+    if [ ! -f "$STATE/ports.base" ]; then
+        cp "$cur" "$STATE/ports.base"
+        return 0
+    fi
+    added=$(comm -13 "$STATE/ports.base" "$cur")
+    if [ -n "$added" ]; then
+        event ALERT "new listening socket(s): $(echo "$added" | tr '\n' ' ')"
+    fi
+}
+
+scan_files() {
+    if [ ! -f "$STATE/files.base" ]; then
+        sha256sum $WATCH_FILES 2>/dev/null > "$STATE/files.base"
+        return 0
+    fi
+    sha256sum $WATCH_FILES 2>/dev/null > "$STATE/files.cur" || return 0
+    if ! cmp -s "$STATE/files.base" "$STATE/files.cur"; then
+        diff=$(diff "$STATE/files.base" "$STATE/files.cur" | grep '^[<>]' | awk '{print $2}' | sort -u | tr '\n' ' ')
+        event ALERT "watched system file(s) changed: ${diff:-unknown}"
+        cp "$STATE/files.cur" "$STATE/files.base"
+    fi
+}
+
+scan_procs() {
+    for d in /proc/[0-9]*; do
+        pid=${d#/proc/}
+        exe=$(readlink "$d/exe" 2>/dev/null) || continue
+        case "$exe" in *"(deleted)"*)
+            cmd=$(tr '\0' ' ' < "$d/cmdline" 2>/dev/null)
+            event ALERT "process $pid runs deleted binary: $cmd (kill: ali-sentinel kill $pid)"
+            ;;
+        esac
+        comm=$(cat "$d/comm" 2>/dev/null)
+        if echo "$comm" | grep -qiE "$BAD_NAMES"; then
+            event ALERT "known-bad process '$comm' pid $pid (kill: ali-sentinel kill $pid)"
+        fi
+    done
+}
+
+scan_once() {
+    scan_logins
+    scan_ports
+    scan_files
+    scan_procs
+}
+
+case "${1:-}" in
+    --once) scan_once ;;
+    learn)
+        ss -tlnH 2>/dev/null | awk '{print $4}' | sort -u > "$STATE/ports.base"
+        sha256sum $WATCH_FILES 2>/dev/null > "$STATE/files.base"
+        event INFO "baselines re-learned by operator"
+        ;;
+    *)  event INFO "Sentinel watch started (IDS alert + IPS exterminate)"
+        while true; do scan_once; sleep "$INTERVAL"; done ;;
+esac
