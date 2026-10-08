@@ -1,12 +1,14 @@
 #!/bin/sh
 set -e
 # Build ali-center .deb for Debian trixie amd64
-VER=1.3.3
+VER=1.3.4
 rm -rf build
 mkdir -p build/DEBIAN build/usr/bin build/usr/share/applications
 make
 cp ali-center build/usr/bin/
 cp ali-center.desktop ali-center-tr.desktop build/usr/share/applications/
+mkdir -p build/usr/share/icons/hicolor/scalable/apps
+cp ../ali-style/icons/ali-center.svg build/usr/share/icons/hicolor/scalable/apps/
 cat > build/DEBIAN/control <<EOF
 Package: ali-center
 Version: $VER

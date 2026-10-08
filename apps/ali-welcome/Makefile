@@ -13,5 +13,6 @@ clean:
 install: ali-welcome
 	install -Dm755 ali-welcome $(DESTDIR)/usr/bin/ali-welcome
 	install -Dm644 ali-welcome.desktop $(DESTDIR)/usr/share/applications/ali-welcome.desktop
+	install -Dm644 ../ali-style/icons/ali-welcome.svg $(DESTDIR)/usr/share/icons/hicolor/scalable/apps/ali-welcome.svg
 
 .PHONY: all clean install

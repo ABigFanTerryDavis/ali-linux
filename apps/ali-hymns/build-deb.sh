@@ -1,12 +1,13 @@
 #!/bin/sh
 set -e
 # Build ali-hymns .deb for Debian trixie amd64
-VER=1.2.8
+VER=1.3.4
 rm -rf build
-mkdir -p build/DEBIAN build/usr/bin build/usr/share/applications
+mkdir -p build/DEBIAN build/usr/bin build/usr/share/applications build/usr/share/icons/hicolor/scalable/apps
 make
 cp ali-hymns build/usr/bin/
 cp ali-hymns.desktop ali-hymns-tr.desktop build/usr/share/applications/
+cp ../ali-style/icons/ali-hymns.svg build/usr/share/icons/hicolor/scalable/apps/
 cat > build/DEBIAN/control <<EOF
 Package: ali-hymns
 Version: $VER

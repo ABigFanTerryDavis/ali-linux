@@ -4,7 +4,7 @@ Type=Application
 Name=ALI Center (Türkçe)
 Comment=ALI Linux sistem merkezi (Türkçe)
 Exec=env ALI_LANG=tr ali-center
-Icon=preferences-system
+Icon=ali-center
 Terminal=false
 Categories=X-XFCE-Settings;System;Settings;
 Keywords=ALI;Sistem;Ayarlar;

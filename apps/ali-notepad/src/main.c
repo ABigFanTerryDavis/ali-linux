@@ -10,6 +10,16 @@
 static GtkWidget *textview;
 static char *current_file = NULL;
 
+/* ALI shared look (1.3.4): /usr/share/ali/ali-style.css, silent fallback. */
+static void ali_style(void) {
+    GtkCssProvider *p = gtk_css_provider_new();
+    if (gtk_css_provider_load_from_path(p, "/usr/share/ali/ali-style.css", NULL)) {
+        gtk_style_context_add_provider_for_screen(gdk_screen_get_default(),
+            GTK_STYLE_PROVIDER(p), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+    }
+    g_object_unref(p);
+}
+
 static void set_title(GtkWindow *win) {
     char t[512];
     if (current_file)
@@ -132,11 +142,13 @@ static void on_about(GtkMenuItem *m, gpointer u) {
 
 int main(int argc, char **argv) {
     gtk_init(&argc, &argv);
+    ali_style();
 
     /* open file from command line: ali-notepad file.txt */
     const char *start_file = (argc > 1) ? argv[1] : NULL;
 
     GtkWidget *win = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    gtk_window_set_icon_name(GTK_WINDOW(win), "ali-notepad");
     gtk_window_set_default_size(GTK_WINDOW(win), 800, 600);
     gtk_window_set_position(GTK_WINDOW(win), GTK_WIN_POS_CENTER);
     g_signal_connect(win, "destroy", G_CALLBACK(gtk_main_quit), NULL);

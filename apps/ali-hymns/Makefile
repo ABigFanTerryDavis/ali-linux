@@ -13,5 +13,6 @@ clean:
 install: ali-hymns
 	install -Dm755 ali-hymns $(DESTDIR)/usr/bin/ali-hymns
 	install -Dm644 ali-hymns.desktop $(DESTDIR)/usr/share/applications/ali-hymns.desktop
+	install -Dm644 ../ali-style/icons/ali-hymns.svg $(DESTDIR)/usr/share/icons/hicolor/scalable/apps/ali-hymns.svg
 
 .PHONY: all clean install

@@ -1,12 +1,13 @@
 #!/bin/sh
 set -e
 # Build ali-ltask .deb (pure Python port, no compile step)
-VER=1.2.8
+VER=1.3.4
 rm -rf build
-mkdir -p build/DEBIAN build/usr/bin build/usr/share/ali-ltask build/usr/share/applications
+mkdir -p build/DEBIAN build/usr/bin build/usr/share/ali-ltask build/usr/share/applications build/usr/share/icons/hicolor/scalable/apps
 cp ltaskmanager.py build/usr/share/ali-ltask/
 cp ali-ltask build/usr/bin/
 cp ali-ltask.desktop ali-ltask-tr.desktop build/usr/share/applications/
+cp ../ali-style/icons/ali-ltask.svg build/usr/share/icons/hicolor/scalable/apps/
 cat > build/DEBIAN/control <<EOF
 Package: ali-ltask
 Version: $VER

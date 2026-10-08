@@ -1,11 +1,12 @@
 #!/bin/sh
 set -e
-VER=1.2.8
+VER=1.3.4
 rm -rf build
-mkdir -p build/DEBIAN build/usr/bin build/usr/share/applications
+mkdir -p build/DEBIAN build/usr/bin build/usr/share/applications build/usr/share/icons/hicolor/scalable/apps
 make
 cp ali-notepad build/usr/bin/
 cp ali-notepad.desktop build/usr/share/applications/
+cp ../ali-style/icons/ali-notepad.svg build/usr/share/icons/hicolor/scalable/apps/
 cat > build/DEBIAN/control <<EOF
 Package: ali-notepad
 Version: $VER

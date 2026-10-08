@@ -4,7 +4,7 @@ Type=Application
 Name=ALI Görev Yöneticisi
 Comment=İşlem + performans yöneticisi (Türkçe)
 Exec=env ALI_LANG=tr ali-ltask
-Icon=utilities-system-monitor
+Icon=ali-ltask
 Terminal=false
 Categories=System;Monitor;X-XFCE;
 Keywords=ALI;Görev;İşlem;Performans;İzleyici;

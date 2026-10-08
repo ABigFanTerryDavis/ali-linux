@@ -26,7 +26,7 @@ static const char *T(const char *en, const char *tr) { return LANG_TR ? tr : en;
 
 static void read_os_pretty(char *out, size_t n) {
     FILE *f = fopen("/etc/os-release", "r");
-    snprintf(out, n, "ALI Linux 1.3.3");
+    snprintf(out, n, "ALI Linux 1.3.4");
     if (!f) return;
     char line[256];
     while (fgets(line, sizeof(line), f)) {
@@ -89,8 +89,19 @@ static void on_install_clicked(GtkButton *b, gpointer u) {
     gtk_widget_destroy(d);
 }
 
-static GtkWidget *tab_label_page(const char *title) {
-    return gtk_label_new(title);
+/* ALI shared look (1.3.4): /usr/share/ali/ali-style.css, silent fallback. */
+static void ali_style(void) {
+    GtkCssProvider *p = gtk_css_provider_new();
+    if (gtk_css_provider_load_from_path(p, "/usr/share/ali/ali-style.css", NULL)) {
+        gtk_style_context_add_provider_for_screen(gdk_screen_get_default(),
+            GTK_STYLE_PROVIDER(p), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+    }
+    g_object_unref(p);
+}
+
+static void stack_page(GtkWidget *stack, GtkWidget *box, const char *name, const char *title) {
+    gtk_stack_add_named(GTK_STACK(stack), box, name);
+    gtk_container_child_set(GTK_CONTAINER(stack), box, "title", title, NULL);
 }
 
 /* Read whole file into a malloc'd buffer (caller frees), NULL if missing. */
@@ -281,15 +292,25 @@ int main(int argc, char **argv) {
         if (env && (strcmp(env, "tr") == 0 || strcmp(env, "TR") == 0)) LANG_TR = 1;
     }
     gtk_init(&argc, &argv);
+    ali_style();
 
     GtkWidget *win = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(win), "ALI Center");
-    gtk_window_set_default_size(GTK_WINDOW(win), 640, 440);
+    gtk_window_set_icon_name(GTK_WINDOW(win), "ali-center");
+    gtk_window_set_default_size(GTK_WINDOW(win), 720, 480);
     gtk_window_set_position(GTK_WINDOW(win), GTK_WIN_POS_CENTER);
     g_signal_connect(win, "destroy", G_CALLBACK(gtk_main_quit), NULL);
 
-    GtkWidget *nb = gtk_notebook_new();
-    gtk_container_add(GTK_CONTAINER(win), nb);
+    GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+    gtk_container_add(GTK_CONTAINER(win), hbox);
+    GtkWidget *stack = gtk_stack_new();
+    gtk_stack_set_transition_type(GTK_STACK(stack), GTK_STACK_TRANSITION_TYPE_SLIDE_LEFT_RIGHT);
+    GtkWidget *sb = gtk_stack_sidebar_new();
+    gtk_stack_sidebar_set_stack(GTK_STACK_SIDEBAR(sb), GTK_STACK(stack));
+    gtk_box_pack_start(GTK_BOX(hbox), sb, FALSE, FALSE, 0);
+    GtkWidget *sep = gtk_separator_new(GTK_ORIENTATION_VERTICAL);
+    gtk_box_pack_start(GTK_BOX(hbox), sep, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(hbox), stack, TRUE, TRUE, 0);
 
     /* --- System tab --- */
     {
@@ -314,7 +335,7 @@ int main(int argc, char **argv) {
             "Klavye: Türkçe (tr) + İngilizce desteklenir.\nXFCE Paneli -> Klavye uygulamasıyla değiştir."));
         gtk_box_pack_start(GTK_BOX(box), hint, FALSE, FALSE, 8);
 
-        gtk_notebook_append_page(GTK_NOTEBOOK(nb), box, tab_label_page(T("System", "Sistem")));
+        stack_page(stack, box, "system", T("System", "Sistem"));
     }
 
     /* --- Appearance tab --- */
@@ -330,7 +351,7 @@ int main(int argc, char **argv) {
         GtkWidget *h = gtk_label_new(T("Tip: right-click Desktop -> Desktop Settings to change wallpaper.",
             "İpucu: duvar kağıdını değiştirmek için Masaüstüne sağ tıkla -> Masaüstü Ayarları."));
         gtk_box_pack_start(GTK_BOX(box), h, FALSE, FALSE, 8);
-        gtk_notebook_append_page(GTK_NOTEBOOK(nb), box, tab_label_page(T("Appearance", "Görünüm")));
+        stack_page(stack, box, "appearance", T("Appearance", "Görünüm"));
     }
 
     /* --- Apps tab --- */
@@ -346,7 +367,7 @@ int main(int argc, char **argv) {
         GtkWidget *b3 = gtk_button_new_with_label(T("Open Browser", "Tarayıcıyı Aç"));
         g_signal_connect(b3, "clicked", G_CALLBACK(on_browser_clicked), NULL);
         gtk_box_pack_start(GTK_BOX(box), b3, FALSE, FALSE, 0);
-        gtk_notebook_append_page(GTK_NOTEBOOK(nb), box, tab_label_page(T("Apps", "Uygulamalar")));
+        stack_page(stack, box, "apps", T("Apps", "Uygulamalar"));
     }
 
     /* --- Install tab --- */
@@ -360,7 +381,7 @@ int main(int argc, char **argv) {
         gtk_widget_set_size_request(b, -1, 48);
         g_signal_connect(b, "clicked", G_CALLBACK(on_install_clicked), NULL);
         gtk_box_pack_start(GTK_BOX(box), b, FALSE, FALSE, 0);
-        gtk_notebook_append_page(GTK_NOTEBOOK(nb), box, tab_label_page(T("Install", "Kurulum")));
+        stack_page(stack, box, "install", T("Install", "Kurulum"));
     }
 
     /* --- Status tab --- */
@@ -374,7 +395,7 @@ int main(int argc, char **argv) {
         GtkWidget *b = gtk_button_new_with_label(T("Refresh", "Yenile"));
         g_signal_connect(b, "clicked", G_CALLBACK(on_status_refresh), l);
         gtk_box_pack_start(GTK_BOX(box), b, FALSE, FALSE, 0);
-        gtk_notebook_append_page(GTK_NOTEBOOK(nb), box, tab_label_page(T("Status", "Durum")));
+        stack_page(stack, box, "status", T("Status", "Durum"));
     }
 
     /* --- Security tab (Sentinel IDS/IPS) --- */
@@ -429,7 +450,7 @@ int main(int argc, char **argv) {
                 gtk_box_pack_start(GTK_BOX(box), frow, FALSE, FALSE, 0);
             }
         }
-        gtk_notebook_append_page(GTK_NOTEBOOK(nb), box, tab_label_page(T("Security", "Güvenlik")));
+        stack_page(stack, box, "security", T("Security", "Güvenlik"));
     }
 
     /* --- About tab --- */
@@ -437,7 +458,7 @@ int main(int argc, char **argv) {
         GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
         gtk_container_set_border_width(GTK_CONTAINER(box), 16);
         char about[512];
-        snprintf(about, sizeof(about), "ALI Linux 1.3.3\nXFCE - amd64.\n\nALI Center 1.3.3 - C + GTK3 (+ Sentinel Security tab).");
+        snprintf(about, sizeof(about), "ALI Linux 1.3.4\nXFCE - amd64.\n\nALI Center 1.3.4 - C + GTK3 (+ Sentinel Security tab).");
         char *vs = read_file_all("/run/templeos-oracle");
         if (vs) {
             char *vl = strstr(vs, "verse=");
@@ -451,7 +472,7 @@ int main(int argc, char **argv) {
         }
         GtkWidget *l = gtk_label_new(about);
         gtk_box_pack_start(GTK_BOX(box), l, FALSE, FALSE, 0);
-        gtk_notebook_append_page(GTK_NOTEBOOK(nb), box, tab_label_page(T("About", "Hakkında")));
+        stack_page(stack, box, "about", T("About", "Hakkında"));
     }
 
     gtk_widget_show_all(win);

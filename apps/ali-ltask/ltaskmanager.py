@@ -14,7 +14,7 @@ from PyQt6.QtWidgets import (
     QHeaderView, QMessageBox, QProgressBar, QComboBox, QMenu, QStackedWidget, QGridLayout, QFrame
 )
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QColor, QBrush
+from PyQt6.QtGui import QColor, QBrush, QIcon
 
 try:
     import pyqtgraph as pg
@@ -406,6 +406,7 @@ class ProcessManager(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("ALI Task Manager - Process Manager")
+        self.setWindowIcon(QIcon.fromTheme("ali-ltask"))
         self.resize(1200, 650)
         self.sort_col = 2
         self.sort_desc = True
@@ -421,7 +422,7 @@ class ProcessManager(QMainWindow):
         # LEFT SIDEBAR
         sidebar = QWidget()
         sidebar.setFixedWidth(170)
-        sidebar.setStyleSheet("background: #202124;")
+        sidebar.setStyleSheet("background: #1a1d29;")
         sb_layout = QVBoxLayout(sidebar)
         sb_layout.setContentsMargins(8,12,8,12)
         sb_layout.setSpacing(6)
@@ -438,10 +439,10 @@ class ProcessManager(QMainWindow):
             b.setCursor(Qt.CursorShape.PointingHandCursor)
             b.setStyleSheet("""
                 QPushButton { text-align: left; padding-left: 12px; color: #e8eaed; background: transparent; border: none; font-size: 13px; border-radius: 6px;}
-                QPushButton:hover { background: #3c4043; }
+                QPushButton:hover { background: #2a2f45; }
             """)
         self.btn_proc.setStyleSheet("""
-            QPushButton { text-align: left; padding-left: 12px; color: white; background: #3c4043; border: none; font-size: 13px; border-radius: 6px; font-weight: bold;}
+            QPushButton { text-align: left; padding-left: 12px; color: white; background: #2a2f45; border: none; font-size: 13px; border-radius: 6px; font-weight: bold;}
         """)
         sb_layout.addWidget(self.btn_proc)
         sb_layout.addWidget(self.btn_perf)
@@ -586,7 +587,7 @@ class ProcessManager(QMainWindow):
     def switch_tab(self, idx):
         self.stack.setCurrentIndex(idx)
         # style update
-        active = "QPushButton { text-align: left; padding-left: 12px; color: white; background: #3c4043; border: none; font-size: 13px; border-radius: 6px; font-weight: bold;}"
+        active = "QPushButton { text-align: left; padding-left: 12px; color: white; background: #2a2f45; border: none; font-size: 13px; border-radius: 6px; font-weight: bold;}"
         inactive = "QPushButton { text-align: left; padding-left: 12px; color: #e8eaed; background: transparent; border: none; font-size: 13px; border-radius: 6px;}"
         self.btn_proc.setStyleSheet(active if idx==0 else inactive)
         self.btn_perf.setStyleSheet(active if idx==1 else inactive)

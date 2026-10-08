@@ -47,6 +47,16 @@ static void on_login_toggle(GtkToggleButton *t, gpointer u) {
     fclose(f);
 }
 
+/* ALI shared look (1.3.4): /usr/share/ali/ali-style.css, silent fallback. */
+static void ali_style(void) {
+    GtkCssProvider *p = gtk_css_provider_new();
+    if (gtk_css_provider_load_from_path(p, "/usr/share/ali/ali-style.css", NULL)) {
+        gtk_style_context_add_provider_for_screen(gdk_screen_get_default(),
+            GTK_STYLE_PROVIDER(p), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+    }
+    g_object_unref(p);
+}
+
 static GtkWidget *big_button(const char *label, GCallback cb) {
     GtkWidget *b = gtk_button_new_with_label(label);
     gtk_widget_set_size_request(b, -1, 44);
@@ -56,9 +66,11 @@ static GtkWidget *big_button(const char *label, GCallback cb) {
 
 int main(int argc, char **argv) {
     gtk_init(&argc, &argv);
+    ali_style();
 
     GtkWidget *win = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(win), "ALI Linux'a hoş geldin - Welcome to ALI Linux");
+    gtk_window_set_icon_name(GTK_WINDOW(win), "ali-welcome");
     gtk_window_set_default_size(GTK_WINDOW(win), 460, 420);
     gtk_window_set_position(GTK_WINDOW(win), GTK_WIN_POS_CENTER);
     g_signal_connect(win, "destroy", G_CALLBACK(gtk_main_quit), NULL);
@@ -66,6 +78,12 @@ int main(int argc, char **argv) {
     GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
     gtk_container_set_border_width(GTK_CONTAINER(box), 20);
     gtk_container_add(GTK_CONTAINER(win), box);
+
+    if (g_file_test("/usr/share/icons/hicolor/scalable/apps/ali-logo.svg", G_FILE_TEST_EXISTS)) {
+        GtkWidget *logo = gtk_image_new_from_file("/usr/share/icons/hicolor/scalable/apps/ali-logo.svg");
+        gtk_image_set_pixel_size(GTK_IMAGE(logo), 64);
+        gtk_box_pack_start(GTK_BOX(box), logo, FALSE, FALSE, 0);
+    }
 
     GtkWidget *head = gtk_label_new(NULL);
     gtk_label_set_markup(GTK_LABEL(head),

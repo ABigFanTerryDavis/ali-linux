@@ -43,6 +43,16 @@ static const char *N_640 = "C5 G4 C5 E5 D5 G5 E5 C6";
 
 static GtkWidget *now_label = NULL;
 
+/* ALI shared look (1.3.4): /usr/share/ali/ali-style.css, silent fallback. */
+static void ali_style(void) {
+    GtkCssProvider *p = gtk_css_provider_new();
+    if (gtk_css_provider_load_from_path(p, "/usr/share/ali/ali-style.css", NULL)) {
+        gtk_style_context_add_provider_for_screen(gdk_screen_get_default(),
+            GTK_STYLE_PROVIDER(p), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+    }
+    g_object_unref(p);
+}
+
 static void on_play(GtkButton *b, gpointer u) {
     (void)b;
     const char **h = (const char **)u;
@@ -91,9 +101,11 @@ int main(int argc, char **argv) {
         if (env && (strcmp(env, "tr") == 0 || strcmp(env, "TR") == 0)) LANG_TR = 1;
     }
     gtk_init(&argc, &argv);
+    ali_style();
 
     GtkWidget *win = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(win), T("ALI Hymns", "ALI İlahiler"));
+    gtk_window_set_icon_name(GTK_WINDOW(win), "ali-hymns");
     gtk_window_set_default_size(GTK_WINDOW(win), 420, 300);
     gtk_window_set_position(GTK_WINDOW(win), GTK_WIN_POS_CENTER);
     g_signal_connect(win, "destroy", G_CALLBACK(gtk_main_quit), NULL);
