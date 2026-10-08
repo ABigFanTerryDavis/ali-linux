@@ -1,0 +1,43 @@
+#!/bin/sh
+# ali-passgen - passwords from Terry's Dice.
+# usage: ali-passgen [len] | ali-passgen --words [n]
+# default: 24 hex chars (96 bits). --words: 6 memorable words (~42 bits,
+# fine for logins, NOT for vault keys - use default for those).
+set -u
+
+WORDS="apple river stone cloud eagle bread light tower wheel horse
+flame leaf drum dance feast table cup moon star night rain snow
+frost dew mist wind fire earth water sand pearl anchor arrow bow
+crown robe sandal scroll seal voice dream vision psalm harp garden
+desert oasis rainbow thunder mountain valley well gate wheat oil
+wine milk honey salt fish dove lamb wolf field forest cliff cave
+bridge road path door lamp sword shield bell book pen ink map
+compass clock wheel chain rope nail hook net sail oar mast flag
+drum horn bell arch dome spire stair attic cellar porch fence
+harbor island shore wave tide storm calm breeze gale frost ember
+ash smoke spark blaze flood drought harvest seed root bloom thorn
+grove meadow brook pond lake falls crag peak gorge dune mesa
+comet meteor orbit planet lunar solar astro nova nebula quasar
+ivory ebony amber jade coral onyx quartz flint slate marble"
+
+if [ "${1:-}" = "--words" ]; then
+    n="${2:-6}"
+    case "$n" in ''|*[!0-9]*|0) echo "usage: ali-passgen --words [n]" >&2; exit 1 ;; esac
+    # need 1 byte per word (mod 128 covers the 128-word list)
+    hex=$(terry-dice hex "$n") || exit 1
+    i=1; out=""
+    count=$(printf '%s' "$WORDS" | wc -w)
+    while [ "$i" -le "$n" ]; do
+        pair=$(printf '%s' "$hex" | cut -c "$((i * 2 - 1))-$((i * 2))")
+        idx=$(awk "BEGIN {print (strtonum(\"0x$pair\") % $count) + 1}")
+        w=$(printf '%s' "$WORDS" | tr ' ' '\n' | sed -n "${idx}p")
+        out="${out:+$out-}$w"
+        i=$((i + 1))
+    done
+    printf '%s\n' "$out"
+else
+    len="${1:-24}"
+    case "$len" in ''|*[!0-9]*|0) echo "usage: ali-passgen [len] | ali-passgen --words [n]" >&2; exit 1 ;; esac
+    bytes=$(( (len + 1) / 2 ))
+    terry-dice hex "$bytes" | cut -c "1-$len"
+fi

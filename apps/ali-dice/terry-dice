@@ -1,0 +1,50 @@
+#!/bin/sh
+# terry-dice - ALI security base. Every roll mixes the house recipe
+# (free-RAM x used-disk + free-RAM, uptime, boot id, load) with 32 FRESH
+# bytes from the kernel CSPRNG, hashed with SHA-256. Stats make it yours,
+# kernel bytes make it unguessable. Fails closed: no kernel entropy, no roll.
+# usage: terry-dice hex [bytes] | id
+set -u
+RANDOM_SRC=/dev/urandom
+STATE=/var/lib/ali-dice
+
+[ -r "$RANDOM_SRC" ] || { echo "terry-dice: no kernel entropy, refusing" >&2; exit 1; }
+
+recipe() {
+    mem=$(awk '/MemAvailable/ {print $2}' /proc/meminfo 2>/dev/null || echo 0)
+    disk=$(df -P / 2>/dev/null | awk 'NR==2 {print $3}')
+    up=$(cut -d' ' -f1 /proc/uptime 2>/dev/null)
+    boot=$(cat /proc/sys/kernel/random/boot_id 2>/dev/null)
+    load=$(cat /proc/loadavg 2>/dev/null)
+    case "$mem" in ''|*[!0-9]*) mem=0 ;; esac
+    case "$disk" in ''|*[!0-9]*) disk=0 ;; esac
+    roll=$((mem * disk + mem))
+    printf '%s %s %s %s %s %s' "$roll" "$mem" "$disk" "$up" "$boot" "$load"
+}
+
+roll_hex() {
+    # $1 = bytes (default 32). Recipe + fresh kernel bytes per block,
+    # so output never replays and never stretches one sample too far.
+    need="${1:-32}"
+    case "$need" in ''|*[!0-9]*|0) echo "usage: terry-dice hex [bytes]" >&2; exit 1 ;; esac
+    out=""
+    while [ "${#out}" -lt $((need * 2)) ]; do
+        block=$( { recipe; head -c 32 "$RANDOM_SRC"; } | sha256sum | awk '{print $1}')
+        out="$out$block"
+    done
+    printf '%s' "$out" | cut -c "1-$((need * 2))"  # cut terminates the line
+}
+
+case "${1:-hex}" in
+    hex) roll_hex "${2:-32}" ;;
+    id)
+        # stable machine-unique install ID (created once, then stable)
+        mkdir -p "$STATE" 2>/dev/null || true
+        if [ ! -f "$STATE/id" ]; then
+            roll_hex 16 > "$STATE/id" 2>/dev/null || exit 1
+            chmod 600 "$STATE/id" 2>/dev/null || true
+        fi
+        cat "$STATE/id"
+        ;;
+    *) echo "usage: terry-dice hex [bytes] | id" >&2; exit 1 ;;
+esac

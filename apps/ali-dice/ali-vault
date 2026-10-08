@@ -1,0 +1,79 @@
+#!/bin/sh
+# ali-vault - file vault on Terry's Dice.
+# usage: ali-vault lock <file> | ali-vault unlock <file.vault> | ali-vault list
+# lock:   dice-rolls a 256-bit data key + IV, encrypts the file (AES-256-CBC),
+#         wraps the data key with YOUR password (PBKDF2), shreds the original.
+# unlock: wrong password = openssl fails = ALERT in the Sentinel feed.
+set -u
+FEED=/run/ali-security
+
+need() { command -v "$1" >/dev/null 2>&1 || { echo "ali-vault: missing $1" >&2; exit 1; }; }
+need openssl; need terry-dice
+
+fail_event() {
+    line="$(date '+%F %T') [ALERT] vault: failed unlock of $1"
+    echo "$line" >> "$FEED" 2>/dev/null || true
+    logger -t ali-vault "failed unlock of $1" 2>/dev/null || true
+    echo "$line" >&2
+}
+
+case "${1:-}" in
+    lock)
+        f="${2:?usage: ali-vault lock <file>}"
+        [ -f "$f" ] || { echo "ali-vault: no such file: $f" >&2; exit 1; }
+        case "$f" in *.vault) echo "ali-vault: already a vault" >&2; exit 1 ;; esac
+        stty -echo 2>/dev/null || true
+        printf 'vault password: '; read -r pw1; printf '\n'
+        printf 'again: '; read -r pw2; printf '\n'
+        stty echo 2>/dev/null || true
+        [ "$pw1" = "$pw2" ] || { echo "ali-vault: passwords differ" >&2; exit 1; }
+        [ -n "$pw1" ] || { echo "ali-vault: empty password" >&2; exit 1; }
+        tmp=$(mktemp -d) || exit 1
+        key=$(terry-dice hex 32) || exit 1
+        iv=$(terry-dice hex 16) || exit 1
+        printf '%s' "$iv" > "$tmp/iv"
+        printf '%s' "$key" > "$tmp/key"
+        openssl enc -aes-256-cbc -pbkdf2 -K "$key" -iv "$iv" -in "$f" -out "$tmp/data.enc" || { rm -rf "$tmp"; exit 1; }
+        printf '%s' "$pw1" | openssl enc -aes-256-cbc -pbkdf2 -salt -in "$tmp/key" -out "$tmp/key.enc" -pass stdin || { rm -rf "$tmp"; exit 1; }
+        pw1=""; pw2=""; key=""
+        tar -czf "$f.vault" -C "$tmp" data.enc key.enc iv || { rm -rf "$tmp"; exit 1; }
+        rm -rf "$tmp"
+        if command -v shred >/dev/null 2>&1; then
+            shred -u "$f" 2>/dev/null || rm -f "$f"
+        else
+            rm -f "$f"
+        fi
+        echo "locked: $f.vault (original shredded)"
+        ;;
+    unlock)
+        v="${2:?usage: ali-vault unlock <file.vault>}"
+        [ -f "$v" ] || { echo "ali-vault: no such vault: $v" >&2; exit 1; }
+        tmp=$(mktemp -d) || exit 1
+        tar -xzf "$v" -C "$tmp" || { rm -rf "$tmp"; exit 1; }
+        stty -echo 2>/dev/null || true
+        printf 'vault password: '; read -r pw; printf '\n'
+        stty echo 2>/dev/null || true
+        if ! printf '%s' "$pw" | openssl enc -d -aes-256-cbc -pbkdf2 -in "$tmp/key.enc" -out "$tmp/key" -pass stdin 2>/dev/null; then
+            pw=""
+            rm -rf "$tmp"
+            fail_event "$v"
+            echo "ali-vault: wrong password" >&2
+            exit 1
+        fi
+        pw=""
+        key=$(cat "$tmp/key"); iv=$(cat "$tmp/iv")
+        out="${v%.vault}"
+        if ! openssl enc -d -aes-256-cbc -pbkdf2 -K "$key" -iv "$iv" -in "$tmp/data.enc" -out "$out" 2>/dev/null; then
+            rm -rf "$tmp"
+            fail_event "$v"
+            echo "ali-vault: decryption failed" >&2
+            exit 1
+        fi
+        rm -rf "$tmp"
+        echo "unlocked: $out"
+        ;;
+    list)
+        ls -1 *.vault 2>/dev/null || echo "(no vaults here)"
+        ;;
+    *) echo "usage: ali-vault lock <file> | ali-vault unlock <file.vault> | ali-vault list" >&2; exit 1 ;;
+esac

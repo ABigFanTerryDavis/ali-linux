@@ -1,4 +1,4 @@
-# ALI Linux 1.2.8 - Debian trixie based, XFCE, amd64
+# ALI Linux 1.2.9 - Debian trixie based, XFCE, amd64
 
 Learning project. Visible rebrand only - underneath 100% Debian.
 
@@ -20,23 +20,24 @@ Learning project. Visible rebrand only - underneath 100% Debian.
 - 1.1.4 - (staged, no push until 1.1.6) debian13/+pardus/ split, shared apps/, Pardus 25 scaffold (repos disabled, no CI yet)
 - 1.1.5 - (staged, no push until 1.1.6) pardus fully ALI: synced updater, Pardus welcome/logo, fastfetch+ufw verified
 - 1.1.6 - PUSHED: Pardus keyring + repos enabled + pardus CI job (2 ISOs) + b43 pin fix
-- 1.2.0 - (staged, NO PUSH until 1.2.8) ALI Sentinel: IDS alerts + IPS auto-block, Center Security tab, ali-sentinel CLI
-- 1.2.1 - (staged, NO PUSH until 1.2.8) Odysseus v4: Sentinel memory (archive+restore blocks), boot/shutdown timing, Sentinel watchdog
-- 1.2.2 - (staged, NO PUSH until 1.2.8) terrydavis QoL daemon: Janitor cleanup, Town crier notifications, USB announcer
-- 1.2.3 - (staged, NO PUSH until 1.2.8) terrydavis v2: Game mode, WiFi watchdog, Night light, Download sorter
-- 1.2.4 - (staged, NO PUSH until 1.2.8) templeos tribute daemon: Oracle, ali-retro 640x480 mode, Daily verse (+ Center About verse)
-- 1.2.5 - (staged, NO PUSH until 1.2.8) Turkish pass (Center+CLI+launchers), terrydavis v3 (Coffee+Crash), ALI Hymns app
-- 1.2.6 - (staged, NO PUSH until 1.2.8) ALI Task Manager: ported LTaskManager (PyQt6) as .deb + deps + menu entry
-- 1.2.7 - (staged, NO PUSH until 1.2.8) ALI look: mac-style dock bar (docklike), clean desktop, traffic-light windows, ALI menu logo
-- 1.2.8 - PUSH: Odysseus v5 network navigator (traffic + lighthouse), Pardus variant REMOVED (Debian-only again), updater refresh (all daemons+units)
+- 1.2.0 - (staged, PUSHED in 1.2.8) ALI Sentinel: IDS alerts + IPS auto-block, Center Security tab, ali-sentinel CLI
+- 1.2.1 - (staged, PUSHED in 1.2.8) Odysseus v4: Sentinel memory (archive+restore blocks), boot/shutdown timing, Sentinel watchdog
+- 1.2.2 - (staged, PUSHED in 1.2.8) terrydavis QoL daemon: Janitor cleanup, Town crier notifications, USB announcer
+- 1.2.3 - (staged, PUSHED in 1.2.8) terrydavis v2: Game mode, WiFi watchdog, Night light, Download sorter
+- 1.2.4 - (staged, PUSHED in 1.2.8) templeos tribute daemon: Oracle, ali-retro 640x480 mode, Daily verse (+ Center About verse)
+- 1.2.5 - (staged, PUSHED in 1.2.8) Turkish pass (Center+CLI+launchers), terrydavis v3 (Coffee+Crash), ALI Hymns app
+- 1.2.6 - (staged, PUSHED in 1.2.8) ALI Task Manager: ported LTaskManager (PyQt6) as .deb + deps + menu entry
+- 1.2.7 - (staged, PUSHED in 1.2.8) ALI look: mac-style dock bar (docklike), clean desktop, traffic-light windows, ALI menu logo
+- 1.2.8 - PUSHED: Odysseus v5 network navigator, Pardus REMOVED, updater refresh
+- 1.2.9 - (staged, NO PUSH until 1.3.9) Terry's Dice security base: dice rolls, ali-passgen, ali-vault (AES-256, Sentinel ALERTs)
 
-## Push checklist (1.2.8 push - THIS IS IT)
+## Push checklist (1.3.9 push - DO NOT PUSH BEFORE 1.3.9)
 ```powershell
 git add .
 git status --short
 git diff --cached --stat
 # review, then ONE commit + push = ONE 30-40 min workflow run
-git commit -m "ALI Linux 1.2.x batch: 1.2.0-1.2.8"
+git commit -m "ALI Linux 1.3.x batch: 1.2.9-1.3.9"
 git push -u origin main
 ```
 
