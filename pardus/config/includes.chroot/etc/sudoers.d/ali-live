@@ -1,2 +1,0 @@
-# ALI Linux live session - passwordless sudo for live user
-ali ALL=(ALL) NOPASSWD:ALL

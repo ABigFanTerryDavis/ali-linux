@@ -48,7 +48,9 @@ tar -xzf "$TARBALL" -C "$WORK"
 SRC="$WORK/ali-linux-$TARGET"
 
 # 1. compiled apps: build from source so ABI always matches this machine
-for app in ali-center ali-notepad; do
+# (pure-Python apps like ali-ltask have no Makefile and are skipped here -
+# they arrive via apt from the image, or copy apps/ali-ltask/*.py by hand)
+for app in ali-center ali-notepad ali-hymns; do
   if [ -f "$SRC/apps/$app/Makefile" ]; then
     echo "building $app..."
     if ! command -v gcc >/dev/null 2>&1 || ! pkg-config --exists gtk+-3.0 2>/dev/null; then
@@ -59,9 +61,9 @@ for app in ali-center ali-notepad; do
   fi
 done
 
-# 2. scripts, terminal wrapper, odysseus daemon (variant-aware layout)
+# 2. scripts, terminal wrapper, daemons (single-variant layout since 1.2.8)
 INCLUDES=""
-for v in debian13 pardus; do
+for v in debian13; do
   if [ -d "$SRC/$v/config/includes.chroot/usr/bin" ]; then INCLUDES="$v"; break; fi
 done
 [ -n "$INCLUDES" ] || INCLUDES="debian13"
@@ -70,7 +72,7 @@ if [ ! -d "$SRC/$INCLUDES/config/includes.chroot/usr/bin" ] && [ -d "$SRC/config
 fi
 INC="$SRC/$INCLUDES/config/includes.chroot"
 [ "$INCLUDES" = "." ] && INC="$SRC/config/includes.chroot"
-for f in ali-update ali-info ali-perf ali-normal ali-update-version ali-terminal odysseus; do
+for f in ali-update ali-info ali-perf ali-normal ali-update-version ali-terminal odysseus sentinel ali-sentinel terrydavis templeos ali-oracle ali-retro; do
   if [ -f "$INC/usr/bin/$f" ]; then
     sudo install -m755 "$INC/usr/bin/$f" /usr/bin/$f
   elif [ -f "$SRC/apps/odysseus/$f" ]; then
@@ -78,15 +80,17 @@ for f in ali-update ali-info ali-perf ali-normal ali-update-version ali-terminal
   fi
 done
 
-# 3. desktop entries, odysseus unit, wallpapers, welcome page, configs
+# 3. desktop entries, daemon units, wallpapers, welcome page, configs
 sudo cp -r "$INC/usr/share/applications/." /usr/share/applications/ 2>/dev/null || true
 sudo cp -r "$INC/usr/share/ali/." /usr/share/ali/ 2>/dev/null || true
 sudo cp -r "$INC/usr/share/backgrounds/." /usr/share/backgrounds/ 2>/dev/null || true
-if [ -f "$INC/usr/lib/systemd/system/odysseus.service" ]; then
-  sudo cp "$INC/usr/lib/systemd/system/odysseus.service" /usr/lib/systemd/system/
-  sudo systemctl daemon-reload 2>/dev/null || true
-  sudo systemctl restart odysseus 2>/dev/null || true
-fi
+for unit in odysseus sentinel terrydavis templeos; do
+  if [ -f "$INC/usr/lib/systemd/system/$unit.service" ]; then
+    sudo cp "$INC/usr/lib/systemd/system/$unit.service" /usr/lib/systemd/system/
+    sudo systemctl daemon-reload 2>/dev/null || true
+    sudo systemctl restart "$unit" 2>/dev/null || true
+  fi
+done
 if [ -f "$INC/etc/ali-safe-rm.sh" ]; then
   sudo cp "$INC/etc/ali-safe-rm.sh" /etc/ali-safe-rm.sh 2>/dev/null || true
 fi

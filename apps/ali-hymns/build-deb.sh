@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 # Build ali-hymns .deb for Debian trixie amd64
-VER=1.2.5
+VER=1.2.8
 rm -rf build
 mkdir -p build/DEBIAN build/usr/bin build/usr/share/applications
 make

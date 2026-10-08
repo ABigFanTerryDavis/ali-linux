@@ -1,4 +1,0 @@
-[Default Applications]
-text/plain=ali-notepad.desktop
-x-scheme-handler/http=firefox-esr.desktop
-x-scheme-handler/https=firefox-esr.desktop

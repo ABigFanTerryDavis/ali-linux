@@ -1,3 +1,0 @@
-#!/bin/sh
-# ALI Terminal - visible wrapper, underneath 100% xfce4-terminal
-exec xfce4-terminal --title="ALI Terminal" "$@"

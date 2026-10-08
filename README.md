@@ -1,4 +1,4 @@
-# ALI Linux 1.2.7 - Debian trixie based, XFCE, amd64 (+ Pardus variant)
+# ALI Linux 1.2.8 - Debian trixie based, XFCE, amd64
 
 Learning project. Visible rebrand only - underneath 100% Debian.
 
@@ -28,8 +28,9 @@ Learning project. Visible rebrand only - underneath 100% Debian.
 - 1.2.5 - (staged, NO PUSH until 1.2.8) Turkish pass (Center+CLI+launchers), terrydavis v3 (Coffee+Crash), ALI Hymns app
 - 1.2.6 - (staged, NO PUSH until 1.2.8) ALI Task Manager: ported LTaskManager (PyQt6) as .deb + deps + menu entry
 - 1.2.7 - (staged, NO PUSH until 1.2.8) ALI look: mac-style dock bar (docklike), clean desktop, traffic-light windows, ALI menu logo
+- 1.2.8 - PUSH: Odysseus v5 network navigator (traffic + lighthouse), Pardus variant REMOVED (Debian-only again), updater refresh (all daemons+units)
 
-## Pre-push checklist (1.2.8 push - DO NOT PUSH BEFORE 1.2.8)
+## Push checklist (1.2.8 push - THIS IS IT)
 ```powershell
 git add .
 git status --short
@@ -59,14 +60,14 @@ Wait 20-40 min. Download artifact `ali-linux-iso`.
 VirtualBox:
 1. New -> Linux Debian 64-bit, 4GB RAM, 20GB VDI
 2. Settings -> System -> EFI: ON (we build grub-efi)
-3. Storage -> mount `ali-linux-1.2.7-amd64.hybrid.iso`
+3. Storage -> mount `ali-linux-1.2.8-amd64.hybrid.iso`
 4. Start -> Try Live -> user `ali`, then double-click Debian Installer to install to disk.
 
 QEMU (faster check):
 ```powershell
-qemu-system-x86_64 -m 4096 -cdrom ali-linux-1.2.7-amd64.hybrid.iso -boot d -enable-hvm
+qemu-system-x86_64 -m 4096 -cdrom ali-linux-1.2.8-amd64.hybrid.iso -boot d -enable-hvm
 # with UEFI:
-qemu-system-x86_64 -m 4096 -bios "C:\Program Files\qemu\share\OVMF.fd" -cdrom ali-linux-1.2.7-amd64.hybrid.iso -boot d
+qemu-system-x86_64 -m 4096 -bios "C:\Program Files\qemu\share\OVMF.fd" -cdrom ali-linux-1.2.8-amd64.hybrid.iso -boot d
 ```
 
 Verify branding:
@@ -78,7 +79,6 @@ fastfetch
 
 ## Structure
 - `debian13/auto/config` - Debian trixie live-build (the image CI builds)
-- `pardus/` - Pardus 25 variant (repos enabled, CI builds 2nd ISO - see `pardus/README-VARIANT.md`)
 - `apps/` - shared ALI apps (Center, Notepad, Hymns, Task Manager, Terminal, commands, Odysseus, Sentinel, terrydavis, templeos)
 - `debian13/config/package-lists/ali-xfce.list.chroot` - XFCE pkgs
 - `debian13/config/includes.chroot/etc/` - os-release, hostname, motd

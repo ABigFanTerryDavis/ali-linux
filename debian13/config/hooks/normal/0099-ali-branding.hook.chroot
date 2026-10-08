@@ -4,10 +4,10 @@ set -e
 # Overwrites base-files on every build so branding survives upgrades in the live system
 
 cat > /etc/os-release <<'EOF'
-PRETTY_NAME="ALI Linux 1.2.7"
+PRETTY_NAME="ALI Linux 1.2.8"
 NAME="ALI Linux"
-VERSION_ID="1.2.7"
-VERSION="1.2.7"
+VERSION_ID="1.2.8"
+VERSION="1.2.8"
 ID=ali
 ID_LIKE=debian
 HOME_URL="https://github.com/"
@@ -16,9 +16,9 @@ EOF
 
 cat > /etc/lsb-release <<'EOF'
 DISTRIB_ID="ALI Linux"
-DISTRIB_RELEASE=1.2.7
+DISTRIB_RELEASE=1.2.8
 DISTRIB_CODENAME=ali
-DISTRIB_DESCRIPTION="ALI Linux 1.2.7"
+DISTRIB_DESCRIPTION="ALI Linux 1.2.8"
 EOF
 
 echo "ali" > /etc/hostname
@@ -30,9 +30,9 @@ ff02::1 ip6-allnodes
 ff02::2 ip6-allrouters
 EOF
 
-echo "ALI Linux 1.2.7 \\n \\l" > /etc/issue
-echo "ALI Linux 1.2.7" > /etc/issue.net
-echo "ALI Linux 1.2.7" > /etc/motd
+echo "ALI Linux 1.2.8 \\n \\l" > /etc/issue
+echo "ALI Linux 1.2.8" > /etc/issue.net
+echo "ALI Linux 1.2.8" > /etc/motd
 
 # LightDM greeter branding if present
 if [ -d /etc/lightdm ]; then
@@ -145,7 +145,7 @@ cat > /usr/share/ali/fastfetch-logo.txt <<'EOF'
  / ___ |/ /___ / /
 /_/  |_/_____/___/
 
-ALI Linux 1.2.7 - XFCE
+ALI Linux 1.2.8 - XFCE
 EOF
 cat > /etc/skel/.config/fastfetch/config.jsonc <<'EOF'
 {

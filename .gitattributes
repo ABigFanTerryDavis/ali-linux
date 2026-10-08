@@ -1,12 +1,8 @@
 * text=auto
 debian13/auto/config text eol=lf
-pardus/auto/config text eol=lf
 debian13/config/hooks/* text eol=lf
-pardus/config/hooks/* text eol=lf
 debian13/config/includes.chroot/** text eol=lf
-pardus/config/includes.chroot/** text eol=lf
 debian13/config/package-lists/** text eol=lf
-pardus/config/package-lists/** text eol=lf
 *.sh text eol=lf
 *.hook.* text eol=lf
 *.pref.* text eol=lf

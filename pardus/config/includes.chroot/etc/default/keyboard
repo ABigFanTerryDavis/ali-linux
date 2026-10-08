@@ -1,6 +1,0 @@
-# ALI Linux keyboard default: English + Turkish, Alt+Shift toggles
-XKBMODEL="pc105"
-XKBLAYOUT="us,tr"
-XKBVARIANT=""
-XKBOPTIONS="grp:alt_shift_toggle"
-BACKSPACE="guess"

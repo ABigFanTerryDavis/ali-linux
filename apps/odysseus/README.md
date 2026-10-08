@@ -1,4 +1,4 @@
-# Odysseus v4 - first task to start, last to end
+# Odysseus v5 - first task to start, last to end
 
 Duties:
 1. **Boot-mode enforcer** - reads `/proc/cmdline`; `mitigations=off`
@@ -16,6 +16,10 @@ Duties:
    re-applies blocks and reports the away period to the fresh feed.
 6. **Sentinel watchdog** - restarts Sentinel if it dies, ALERTs the
    security feed if restart fails.
+7. **Network navigator** - per-session rx/tx accounting for the default
+   interface plus gateway/DNS/internet lighthouse checks. A dark sea
+   lands in `last_warn`, so Center Status shows it and the town crier
+   pings you.
 
 A systemd service ordered before `sysinit.target` (so it starts first)
 and before `shutdown.target` with no default deps (so it stops last).
