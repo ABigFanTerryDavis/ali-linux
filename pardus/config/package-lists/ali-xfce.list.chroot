@@ -21,4 +21,5 @@ unattended-upgrades
 iproute2
 libnotify-bin
 x11-utils
+x11-xserver-utils
 redshift

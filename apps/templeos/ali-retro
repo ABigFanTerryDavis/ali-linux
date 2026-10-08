@@ -1,0 +1,35 @@
+#!/bin/sh
+# ali-retro - TempleOS tribute mode: 640x480 pilgrimage, then back.
+# usage: ali-retro on|off
+# on:  saves current mode, drops the primary display to 640x480 (or the
+#      smallest mode available), opens a fullscreen white-on-navy terminal.
+# off: restores the saved mode.
+set -u
+STATE=/var/lib/templeos
+OUT=$(xrandr --query 2>/dev/null | grep -a ' connected' | head -n1 | awk '{print $1}')
+
+case "${1:-}" in
+    on)
+        [ -n "$OUT" ] || { echo "no display found"; exit 1; }
+        cur=$(xrandr --query 2>/dev/null | grep -a '^'"$OUT"' connected' | grep -aoE '[0-9]+x[0-9]+\+' | tr -d '+' | head -n1)
+        [ -n "$cur" ] && echo "$OUT $cur" > "$STATE/retro.saved"
+        if xrandr --query 2>/dev/null | grep -q '640x480'; then
+            mode=640x480
+        else
+            mode=$(xrandr --query 2>/dev/null | grep -aoE '[0-9]+x[0-9]+' | sort -t x -k1,1n -k2,2n | head -n1)
+        fi
+        xrandr --output "$OUT" --mode "$mode" 2>/dev/null || { echo "mode switch failed"; exit 1; }
+        echo "TempleOS tribute: $mode. Run 'ali-retro off' to return to $cur."
+        DISPLAY=:0 xfce4-terminal --fullscreen --color-bg='#000080' --color-fg='#FFFFFF' --title='TempleOS tribute (ali-retro off to exit)' 2>/dev/null &
+        ;;
+    off)
+        if [ -f "$STATE/retro.saved" ]; then
+            read -r OUT MODE < "$STATE/retro.saved"
+            xrandr --output "$OUT" --mode "$MODE" 2>/dev/null || true
+            echo "restored $MODE on $OUT. Amen."
+        else
+            echo "no saved mode (was ali-retro ever on?)"
+        fi
+        ;;
+    *) echo "usage: ali-retro on|off" ;;
+esac
