@@ -1,4 +1,4 @@
-# ALI Linux 1.3.8 - Debian trixie based, XFCE, amd64
+# ALI Linux 1.3.9 - Debian trixie based, XFCE, amd64
 
 Learning project. Visible rebrand only - underneath 100% Debian.
 
@@ -29,18 +29,19 @@ Learning project. Visible rebrand only - underneath 100% Debian.
 - 1.2.6 - (staged, PUSHED in 1.2.8) ALI Task Manager: ported LTaskManager (PyQt6) as .deb + deps + menu entry
 - 1.2.7 - (staged, PUSHED in 1.2.8) ALI look: mac-style dock bar (docklike), clean desktop, traffic-light windows, ALI menu logo
 - 1.2.8 - PUSHED: Odysseus v5 network navigator, Pardus REMOVED, updater refresh
-- 1.2.9 - (staged, NO PUSH until 1.3.9) Terry's Dice security base: dice rolls, ali-passgen, ali-vault (AES-256, Sentinel ALERTs)
-- 1.3.0 - (staged, NO PUSH until 1.3.9) Boot identity (Plymouth splash + GRUB theme), Welcome wizard, Dice in Center, Battery brain
-- 1.3.1 - (staged, NO PUSH until 1.3.9) Session look (terminal theme+billboard, Conky HUD), Welcome-back ping, daily-driver pack, ltask Turkish
-- 1.3.2 - (staged, NO PUSH until 1.3.9) ALI-everywhere sweep, ltask true daemon names, Oracle security daemon (verdicts+lots)
-- 1.3.3 - (staged, NO PUSH until 1.3.9) Controllers: ltask Services tab, Center firewall, Oracle pings, zram, wallpaper rotation
-- 1.3.4 - (staged, NO PUSH until 1.3.9) GUI rehaul: shared dark theme, Center sidebar, per-app icons, ltask palette, Welcome banner
-- 1.3.5 - (staged, NO PUSH until 1.3.9) Hymns v2 (real audio + 3 songs), ltask Startup tab, Notepad v2 (TR+find), ali-backup, boot report
-- 1.3.6 - (staged, NO PUSH until 1.3.9) Shrine screensaver, Updates tab, Thunar actions, ali-info v2, game corner
-- 1.3.7 - (staged, NO PUSH until 1.3.9) Power pack: ali-mirrors, Services boot toggles, governor buttons, preload, Notepad tabs
-- 1.3.8 - (staged, NO PUSH until 1.3.9) Hardening: pre-push audit, Notepad print, Hymns queue, updater dry-run
+- 1.2.9 - (staged, PUSHED in 1.3.9) Terry's Dice security base: dice rolls, ali-passgen, ali-vault (AES-256, Sentinel ALERTs)
+- 1.3.0 - (staged, PUSHED in 1.3.9) Boot identity (Plymouth splash + GRUB theme), Welcome wizard, Dice in Center, Battery brain
+- 1.3.1 - (staged, PUSHED in 1.3.9) Session look (terminal theme+billboard, Conky HUD), Welcome-back ping, daily-driver pack, ltask Turkish
+- 1.3.2 - (staged, PUSHED in 1.3.9) ALI-everywhere sweep, ltask true daemon names, Oracle security daemon (verdicts+lots)
+- 1.3.3 - (staged, PUSHED in 1.3.9) Controllers: ltask Services tab, Center firewall, Oracle pings, zram, wallpaper rotation
+- 1.3.4 - (staged, PUSHED in 1.3.9) GUI rehaul: shared dark theme, Center sidebar, per-app icons, ltask palette, Welcome banner
+- 1.3.5 - (staged, PUSHED in 1.3.9) Hymns v2 (real audio + 3 songs), ltask Startup tab, Notepad v2 (TR+find), ali-backup, boot report
+- 1.3.6 - (staged, PUSHED in 1.3.9) Shrine screensaver, Updates tab, Thunar actions, ali-info v2, game corner
+- 1.3.7 - (staged, PUSHED in 1.3.9) Power pack: ali-mirrors, Services boot toggles, governor buttons, preload, Notepad tabs
+- 1.3.8 - (staged, PUSHED in 1.3.9) Hardening: pre-push audit, Notepad print, Hymns queue, updater dry-run
+- 1.3.9 - PUSH: what's-new tour page + Welcome button, full version sweep
 
-## Push checklist (1.3.9 push - DO NOT PUSH BEFORE 1.3.9)
+## Push checklist (1.3.9 push - THIS IS IT)
 ```powershell
 git add .
 git status --short

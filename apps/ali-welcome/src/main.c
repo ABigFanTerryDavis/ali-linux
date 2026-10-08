@@ -35,6 +35,11 @@ static void on_tour(GtkButton *b, gpointer u) {
     launch_async("exo-open /usr/share/ali/welcome.html 2>/dev/null || firefox-esr /usr/share/ali/welcome.html 2>/dev/null || true");
 }
 
+static void on_whatsnew(GtkButton *b, gpointer u) {
+    (void)b; (void)u;
+    launch_async("exo-open /usr/share/ali/welcome.html#whats-new 2>/dev/null || firefox-esr /usr/share/ali/welcome.html 2>/dev/null || true");
+}
+
 static void on_login_toggle(GtkToggleButton *t, gpointer u) {
     (void)u;
     gboolean show = gtk_toggle_button_get_active(t);
@@ -94,6 +99,7 @@ int main(int argc, char **argv) {
     gtk_box_pack_start(GTK_BOX(box), big_button("Güncellemeler / Updates", G_CALLBACK(on_updates)), FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(box), big_button("ALI Center (Denetim Masası / Control Panel)", G_CALLBACK(on_center)), FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(box), big_button("Tur / Tour", G_CALLBACK(on_tour)), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), big_button("Yenilikler / What's New", G_CALLBACK(on_whatsnew)), FALSE, FALSE, 0);
 
     GtkWidget *chk = gtk_check_button_new_with_label("Girişte göster / Show on login");
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(chk), TRUE);

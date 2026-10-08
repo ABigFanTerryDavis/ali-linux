@@ -4,4 +4,4 @@
  / ___ |/ /___ / /
 /_/  |_/_____/___/
 
-ALI Linux 1.3.8 - XFCE
+ALI Linux 1.3.9 - XFCE
