@@ -1,0 +1,29 @@
+#!/bin/sh
+# ali-alarm - wake up to the temple. Plays a hymn at HH:MM (today or tomorrow).
+# usage: ali-alarm HH:MM [1-6]
+# Turkish: ALI_LANG=tr
+set -u
+
+TR() {
+    if [ "${ALI_LANG:-}" = "tr" ] || [ "${ALI_LANG:-}" = "TR" ]; then printf '%s' "$2"; else printf '%s' "$1"; fi
+}
+
+case "${1:-}" in ''|*[!0-9:]*|*:*:*) echo "$(TR 'usage: ali-alarm HH:MM [1-6]' 'kullanım: ali-alarm SS:DD [1-6]')" >&2; exit 1 ;; esac
+hh=$(printf '%s' "$1" | cut -d: -f1); mm=$(printf '%s' "$1" | cut -d: -f2)
+case "$hh$mm" in ''|*[!0-9]*) echo "$(TR 'bad time' 'saat hatalı')" >&2; exit 1 ;; esac
+if [ "$hh" -gt 23 ] || [ "$mm" -gt 59 ]; then echo "$(TR 'bad time' 'saat hatalı')" >&2; exit 1; fi
+n="${2:-2}"
+case "$n" in [1-6]) : ;; *) echo "$(TR 'pick hymn 1-6' 'ilahiyi 1-6 seç')" >&2; exit 1 ;; esac
+
+now=$(date +%s)
+target=$(date -d "$(date +%F) $hh:$mm" +%s 2>/dev/null)
+if [ -z "$target" ] || [ "$target" -le "$now" ]; then
+    target=$(date -d "tomorrow $hh:$mm" +%s 2>/dev/null) || exit 1
+fi
+wait_for=$((target - now))
+echo "$(TR "alarm set: $1 (hymn $n), in $((wait_for / 3600))h$((wait_for % 3600 / 60))m. Keep this terminal open." "alarm kuruldu: $1 (ilahi $n), $((wait_for / 3600))s$((wait_for % 3600 / 60))d sonra. Bu uçbirimi açık tut.")"
+sleep "$wait_for"
+if command -v notify-send >/dev/null 2>&1; then
+    notify-send "ALI Alarm" "$(TR "rise and shine - hymn $n" "günaydın - ilahi $n")" 2>/dev/null || true
+fi
+ali-hymns --play "$n" 2>/dev/null || echo "$(TR 'time!' 'zaman!')"

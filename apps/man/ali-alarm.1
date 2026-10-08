@@ -1,0 +1,13 @@
+.TH ALI-ALARM 1 "October 2026" "ALI Linux 1.4.2" "User Commands"
+.SH NAME
+ali-alarm \- wake up to the temple at HH:MM
+.SH SYNOPSIS
+.B ali-alarm HH:MM
+.RI [ 1-6 ]
+.SH DESCRIPTION
+Waits until the time (tomorrow if already past), pings, then
+plays hymn N (default 2, Oracle's Dance) via
+.BR ali-hymns (1).
+Keep the terminal open; it sleeps there.
+.SH SEE ALSO
+.BR ali-hymns (1)

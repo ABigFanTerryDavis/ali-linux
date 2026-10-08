@@ -1,0 +1,20 @@
+#!/bin/sh
+# ali-game - run a game the ALI way: performance governor + MangoHud overlay.
+# usage: ali-game <game-command...>
+# Restores the normal governor on exit. Needs mangohud (in the image).
+set -u
+if [ $# -eq 0 ]; then
+    echo "usage: ali-game <game-command...>" >&2
+    exit 1
+fi
+if [ -d /sys/devices/system/cpu/cpu0/cpufreq ]; then
+    echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor >/dev/null 2>&1 || true
+fi
+if command -v mangohud >/dev/null 2>&1; then
+    MANGOHUD=1 mangohud "$@"
+else
+    "$@"
+fi
+rc=$?
+sudo ali-normal >/dev/null 2>&1 || true
+exit $rc

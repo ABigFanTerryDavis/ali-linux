@@ -11,6 +11,7 @@ TR() {
 L() { printf '%s: %s\n' "$1" "$2"; }
 
 echo "== $(TR 'ALI Linux report' 'ALI Linux raporu') ($(date '+%F %T')) =="
+cat /usr/share/ali/mascot.txt 2>/dev/null || true
 L "$(TR 'OS' 'Sistem')" "$(grep -m1 PRETTY_NAME /etc/os-release 2>/dev/null | cut -d'"' -f2)"
 L "$(TR 'Kernel' 'Çekirdek')" "$(uname -r)"
 L "$(TR 'Desktop' 'Masaüstü')" "${XDG_CURRENT_DESKTOP:-XFCE} ($(echo "${XDG_SESSION_TYPE:-x11}"))"

@@ -15,6 +15,7 @@
 #  11. Wallpaper rotation: hourly cycle through OUR wallpapers, never
 #      stomping a custom one (1h). Crier also relays Oracle verdicts.
 #  12. Shrine keeper: 10 idle minutes -> ali-shrine takes the screen.
+#  13. Backup nanny: weekly ali-backup for the live user, ping when done.
 set -u
 STATE=/var/lib/terrydavis
 STATUS=/run/terrydavis-status
@@ -466,6 +467,23 @@ sorter() {
     fi
 }
 
+backup_check() {
+    # weekly ali-backup for the live user (as them, into their space)
+    if ! id ali >/dev/null 2>&1; then return 0; fi
+    if ! command -v ali-backup >/dev/null 2>&1; then return 0; fi
+    last=$(cat "$STATE/last-backup" 2>/dev/null || echo 0)
+    case "$last" in ''|*[!0-9]*) last=0 ;; esac
+    now=$(date +%s)
+    if [ $((now - last)) -ge 604800 ]; then
+        out=$(sudo -u ali HOME=/home/ali ali-backup 2>&1 | tail -n2 | tr '\n' ';')
+        echo "$now" > "$STATE/last-backup"
+        ping "ALI Backup" "weekly backup done: $out"
+        echo "weekly backup done" > "$STATE/last-notice"
+        log "backup nanny ran"
+        write_status
+    fi
+}
+
 announce_once() {
     # `terrydavis --once`: one full pass now.
     janitor
@@ -505,7 +523,7 @@ welcome_back() {
 case "${1:-}" in
     --once) announce_once ;;
     --welcome) welcome_back ;;
-    *)  log "starting (QoL: janitor + crier + usb + game + wifi + night + sorter + coffee + crash + battery + wallpaper)"
+    *)  log "starting (QoL: janitor + crier + usb + game + wifi + night + sorter + coffee + crash + battery + wallpaper + backup)"
         write_status
         n=0
         w=0
@@ -529,6 +547,7 @@ case "${1:-}" in
                 night_check
                 wallpaper
                 crash_check
+                backup_check
             fi
             sleep "$FAST"
         done ;;
