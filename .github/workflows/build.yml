@@ -38,10 +38,16 @@ jobs:
           make
           sh ./build-deb.sh
 
+      - name: Build ali-hymns
+        run: |
+          cd apps/ali-hymns
+          make
+          sh ./build-deb.sh
+
       - name: Stage packages
         run: |
           mkdir -p dist-apps
-          cp apps/ali-center/*.deb apps/ali-notepad/*.deb dist-apps/
+          cp apps/ali-center/*.deb apps/ali-notepad/*.deb apps/ali-hymns/*.deb dist-apps/
           ls -lh dist-apps/
 
       - name: Upload app packages

@@ -8,6 +8,8 @@
 #   5. WiFi watchdog: nudges NetworkManager back up, pings if it can't (1m).
 #   6. Night light: redshift after 21:00, off at 06:00 (hourly).
 #   7. Download sorter: files ~/Downloads by extension, skips fresh (15s).
+#   8. Coffee mode: inhibits suspend while SSH/media is active (1m).
+#   9. Crash catcher: fresh coredumps become a visible ping (hourly).
 set -u
 STATE=/var/lib/terrydavis
 STATUS=/run/terrydavis-status
@@ -45,6 +47,8 @@ write_status() {
         echo "game_mode=$(cat $STATE/gamemode 2>/dev/null || echo off)"
         echo "night_light=$(pgrep -x redshift >/dev/null 2>&1 && echo on || echo off)"
         echo "wifi=$(nmcli -t -f STATE g 2>/dev/null || echo unknown)"
+        echo "coffee=$([ -f $STATE/coffee.pid ] && pgrep -F $STATE/coffee.pid >/dev/null 2>&1 && echo on || echo off)"
+        echo "crashes=$(cat $STATE/crash-count 2>/dev/null || echo 0)"
         echo "last_sort=$(cat $STATE/last-sort 2>/dev/null || echo never)"
         echo "last_check=$(date '+%F %T')"
     } > "$STATUS" 2>/dev/null || true
@@ -224,6 +228,55 @@ wifi_check() {
     fi
 }
 
+coffee_check() {
+    # suspend makes no sense mid-transfer or mid-movie: hold an inhibitor
+    # while SSH sessions or media players are active, release after.
+    need=0
+    if command -v ss >/dev/null 2>&1; then
+        if ss -tn state established 2>/dev/null | grep -qE ':22[[:space:]]'; then need=1; fi
+    fi
+    if [ "$need" = "0" ] && command -v pgrep >/dev/null 2>&1; then
+        if pgrep -xE 'mpv|vlc|totem|celluloid|parole' >/dev/null 2>&1; then need=1; fi
+    fi
+    if [ ! -d /run/systemd/system ]; then return 0; fi  # no systemd, no inhibitors
+    if [ "$need" = "1" ]; then
+        if [ -f "$STATE/coffee.pid" ] && pgrep -F "$STATE/coffee.pid" >/dev/null 2>&1; then return 0; fi
+        systemd-inhibit --what=sleep:idle --who=terrydavis --why='coffee mode: ssh/media active' sleep infinity >/dev/null 2>&1 &
+        echo $! > "$STATE/coffee.pid"
+        log "coffee mode ON (suspend inhibited)"
+        write_status
+    else
+        if [ -f "$STATE/coffee.pid" ]; then
+            kill "$(cat $STATE/coffee.pid 2>/dev/null)" 2>/dev/null || true
+            rm -f "$STATE/coffee.pid"
+            # the sleep may have been reparented; sweep leftovers
+            pkill -f 'sleep infinity' 2>/dev/null || true
+            log "coffee mode OFF"
+            write_status
+        fi
+    fi
+}
+
+crash_check() {
+    # coredumps die in silence; make the latest one visible (once each).
+    total=0
+    if command -v coredumpctl >/dev/null 2>&1; then
+        total=$(coredumpctl --no-legend --no-pager 2>/dev/null | wc -l)
+    fi
+    if [ -d /var/crash ]; then
+        total=$((total + $(ls /var/crash/*.crash 2>/dev/null | wc -l)))
+    fi
+    old=$(cat "$STATE/crash-count" 2>/dev/null || echo 0)
+    case "$old" in ''|*[!0-9]*) old=0 ;; esac
+    echo "$total" > "$STATE/crash-count"
+    if [ "$total" -gt "$old" ]; then
+        ping "ALI Crash" "$((total - old)) new crash(es) - run: coredumpctl list"
+        echo "$((total - old)) new crash(es)" > "$STATE/last-notice"
+        log "cried about: $((total - old)) crash(es)"
+        write_status
+    fi
+}
+
 night_check() {
     if ! command -v redshift >/dev/null 2>&1; then return 0; fi
     if ! id ali >/dev/null 2>&1; then return 0; fi
@@ -283,14 +336,16 @@ announce_once() {
     usb_announce
     game_check
     wifi_check
+    coffee_check
     night_check
     sorter
+    crash_check
     write_status
 }
 
 case "${1:-}" in
     --once) announce_once ;;
-    *)  log "starting (QoL: janitor + crier + usb + game + wifi + night + sorter)"
+    *)  log "starting (QoL: janitor + crier + usb + game + wifi + night + sorter + coffee + crash)"
         write_status
         n=0
         w=0
@@ -302,6 +357,7 @@ case "${1:-}" in
             if [ "$w" -ge "$WIFI_EVERY" ]; then
                 w=0
                 wifi_check
+                coffee_check
             fi
             n=$((n + 1))
             if [ "$n" -ge "$SLOW_EVERY" ]; then
@@ -309,6 +365,7 @@ case "${1:-}" in
                 janitor
                 crier
                 night_check
+                crash_check
             fi
             sleep "$FAST"
         done ;;

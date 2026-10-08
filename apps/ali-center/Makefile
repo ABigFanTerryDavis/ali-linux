@@ -13,5 +13,6 @@ clean:
 install: ali-center
 	install -Dm755 ali-center $(DESTDIR)/usr/bin/ali-center
 	install -Dm644 ali-center.desktop $(DESTDIR)/usr/share/applications/ali-center.desktop
+	install -Dm644 ali-center-tr.desktop $(DESTDIR)/usr/share/applications/ali-center-tr.desktop
 
 .PHONY: all clean install

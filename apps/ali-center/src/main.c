@@ -20,9 +20,13 @@ static void launch_async(const char *cmd) {
     }
 }
 
+/* Turkish pass (1.2.5): --tr flag or ALI_LANG=tr. Proper nouns stay. */
+static int LANG_TR = 0;
+static const char *T(const char *en, const char *tr) { return LANG_TR ? tr : en; }
+
 static void read_os_pretty(char *out, size_t n) {
     FILE *f = fopen("/etc/os-release", "r");
-    snprintf(out, n, "ALI Linux 1.2.4");
+    snprintf(out, n, "ALI Linux 1.2.5");
     if (!f) return;
     char line[256];
     while (fgets(line, sizeof(line), f)) {
@@ -79,7 +83,8 @@ static void on_install_clicked(GtkButton *b, gpointer u) {
     if (rc == 0) { launch_async("live-installer"); return; }
     GtkWidget *d = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL,
         GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE,
-        "Installer not found in live session.\nLook for 'ALI Installer' on the desktop.");
+        "%s", T("Installer not found in live session.\nLook for 'ALI Installer' on the desktop.",
+                "Kurulum bulunamadı.\nMasaüstündeki 'ALI Installer' simgesine bak."));
     gtk_dialog_run(GTK_DIALOG(d));
     gtk_widget_destroy(d);
 }
@@ -149,7 +154,8 @@ static const char *build_security_text(void) {
     GString *s = g_string_new(NULL);
     char *feed = read_file_all("/run/ali-security");
     if (feed) {
-        g_string_append(s, "Sentinel: running (IDS watch + IPS exterminate)\n\n");
+        g_string_append(s, T("Sentinel: running (IDS watch + IPS exterminate)\n\n",
+            "Sentinel: çalışıyor (IDS izleme + IPS engelleme)\n\n"));
         /* last 15 lines of feed */
         int total = 0;
         for (char *p = feed; *p; p++) if (*p == '\n') total++;
@@ -159,9 +165,11 @@ static const char *build_security_text(void) {
         g_string_append(s, p);
         free(feed);
     } else {
-        g_string_append(s, "Sentinel: not running\n(starts at boot on ALI Linux 1.2.0+)\n");
+        g_string_append(s, T("Sentinel: not running\n(starts at boot on ALI Linux 1.2.0+)\n",
+            "Sentinel: çalışmıyor\n(ALI Linux 1.2.0+ sürümünde açılışta başlar)\n"));
     }
-    g_string_append(s, "\nManage from terminal: ali-sentinel status|events|blocked|unblock <ip>|learn|check|kill <pid>");
+    g_string_append(s, T("\nManage from terminal: ali-sentinel status|events|blocked|unblock <ip>|learn|check|kill <pid>",
+        "\nUçbirimden yönet: ali-sentinel status|events|blocked|unblock <ip>|learn|check|kill <pid>"));
     snprintf(sentinel_buf, sizeof(sentinel_buf), "%s", s->str);
     g_string_free(s, TRUE);
     return sentinel_buf;
@@ -178,6 +186,13 @@ static void on_scan_clicked(GtkButton *b, gpointer u) {
 }
 
 int main(int argc, char **argv) {
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--tr") == 0) { LANG_TR = 1; break; }
+    }
+    if (!LANG_TR) {
+        const char *env = getenv("ALI_LANG");
+        if (env && (strcmp(env, "tr") == 0 || strcmp(env, "TR") == 0)) LANG_TR = 1;
+    }
     gtk_init(&argc, &argv);
 
     GtkWidget *win = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -200,61 +215,65 @@ int main(int argc, char **argv) {
         gtk_label_set_markup(GTK_LABEL(l), buf);
         gtk_box_pack_start(GTK_BOX(box), l, FALSE, FALSE, 0);
 
-        GtkWidget *b1 = gtk_button_new_with_label("System Info (fastfetch)");
+        GtkWidget *b1 = gtk_button_new_with_label(T("System Info (fastfetch)", "Sistem Bilgisi (fastfetch)"));
         g_signal_connect(b1, "clicked", G_CALLBACK(on_sysinfo_clicked), NULL);
         gtk_box_pack_start(GTK_BOX(box), b1, FALSE, FALSE, 0);
 
-        GtkWidget *b2 = gtk_button_new_with_label("Check for Updates (apt)");
+        GtkWidget *b2 = gtk_button_new_with_label(T("Check for Updates (apt)", "Güncellemeleri Denetle (apt)"));
         g_signal_connect(b2, "clicked", G_CALLBACK(on_update_clicked), NULL);
         gtk_box_pack_start(GTK_BOX(box), b2, FALSE, FALSE, 0);
 
-        GtkWidget *hint = gtk_label_new("Keyboard: Turkish (tr) + English supported.\nSwitch with XFCE Panel -> Keyboard applet.");
+        GtkWidget *hint = gtk_label_new(T("Keyboard: Turkish (tr) + English supported.\nSwitch with XFCE Panel -> Keyboard applet.",
+            "Klavye: Türkçe (tr) + İngilizce desteklenir.\nXFCE Paneli -> Klavye uygulamasıyla değiştir."));
         gtk_box_pack_start(GTK_BOX(box), hint, FALSE, FALSE, 8);
 
-        gtk_notebook_append_page(GTK_NOTEBOOK(nb), box, tab_label_page("System"));
+        gtk_notebook_append_page(GTK_NOTEBOOK(nb), box, tab_label_page(T("System", "Sistem")));
     }
 
     /* --- Appearance tab --- */
     {
         GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
         gtk_container_set_border_width(GTK_CONTAINER(box), 16);
-        GtkWidget *l = gtk_label_new("Theme: Greybird - Icons: elementary-xfce\nWallpapers: /usr/share/backgrounds/ali/");
+        GtkWidget *l = gtk_label_new(T("Theme: Greybird - Icons: elementary-xfce\nWallpapers: /usr/share/backgrounds/ali/",
+            "Tema: Greybird - Simgeler: elementary-xfce\nDuvar kağıtları: /usr/share/backgrounds/ali/"));
         gtk_box_pack_start(GTK_BOX(box), l, FALSE, FALSE, 0);
-        GtkWidget *b = gtk_button_new_with_label("Open Wallpapers Folder");
+        GtkWidget *b = gtk_button_new_with_label(T("Open Wallpapers Folder", "Duvar Kağıtları Klasörünü Aç"));
         g_signal_connect(b, "clicked", G_CALLBACK(on_wallpapers_clicked), NULL);
         gtk_box_pack_start(GTK_BOX(box), b, FALSE, FALSE, 0);
-        GtkWidget *h = gtk_label_new("Tip: right-click Desktop -> Desktop Settings to change wallpaper.");
+        GtkWidget *h = gtk_label_new(T("Tip: right-click Desktop -> Desktop Settings to change wallpaper.",
+            "İpucu: duvar kağıdını değiştirmek için Masaüstüne sağ tıkla -> Masaüstü Ayarları."));
         gtk_box_pack_start(GTK_BOX(box), h, FALSE, FALSE, 8);
-        gtk_notebook_append_page(GTK_NOTEBOOK(nb), box, tab_label_page("Appearance"));
+        gtk_notebook_append_page(GTK_NOTEBOOK(nb), box, tab_label_page(T("Appearance", "Görünüm")));
     }
 
     /* --- Apps tab --- */
     {
         GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
         gtk_container_set_border_width(GTK_CONTAINER(box), 16);
-        GtkWidget *b1 = gtk_button_new_with_label("Open ALI Terminal");
+        GtkWidget *b1 = gtk_button_new_with_label(T("Open ALI Terminal", "ALI Uçbirimini Aç"));
         g_signal_connect(b1, "clicked", G_CALLBACK(on_terminal_clicked), NULL);
         gtk_box_pack_start(GTK_BOX(box), b1, FALSE, FALSE, 0);
-        GtkWidget *b2 = gtk_button_new_with_label("Open Files");
+        GtkWidget *b2 = gtk_button_new_with_label(T("Open Files", "Dosyaları Aç"));
         g_signal_connect(b2, "clicked", G_CALLBACK(on_files_clicked), NULL);
         gtk_box_pack_start(GTK_BOX(box), b2, FALSE, FALSE, 0);
-        GtkWidget *b3 = gtk_button_new_with_label("Open Browser");
+        GtkWidget *b3 = gtk_button_new_with_label(T("Open Browser", "Tarayıcıyı Aç"));
         g_signal_connect(b3, "clicked", G_CALLBACK(on_browser_clicked), NULL);
         gtk_box_pack_start(GTK_BOX(box), b3, FALSE, FALSE, 0);
-        gtk_notebook_append_page(GTK_NOTEBOOK(nb), box, tab_label_page("Apps"));
+        gtk_notebook_append_page(GTK_NOTEBOOK(nb), box, tab_label_page(T("Apps", "Uygulamalar")));
     }
 
     /* --- Install tab --- */
     {
         GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
         gtk_container_set_border_width(GTK_CONTAINER(box), 16);
-        GtkWidget *l = gtk_label_new("Try live, then install to disk when ready.");
+        GtkWidget *l = gtk_label_new(T("Try live, then install to disk when ready.",
+            "Önce canlı dene, hazır olunca diske kur."));
         gtk_box_pack_start(GTK_BOX(box), l, FALSE, FALSE, 0);
-        GtkWidget *b = gtk_button_new_with_label("Install ALI to Disk");
+        GtkWidget *b = gtk_button_new_with_label(T("Install ALI to Disk", "ALI'yi Diske Kur"));
         gtk_widget_set_size_request(b, -1, 48);
         g_signal_connect(b, "clicked", G_CALLBACK(on_install_clicked), NULL);
         gtk_box_pack_start(GTK_BOX(box), b, FALSE, FALSE, 0);
-        gtk_notebook_append_page(GTK_NOTEBOOK(nb), box, tab_label_page("Install"));
+        gtk_notebook_append_page(GTK_NOTEBOOK(nb), box, tab_label_page(T("Install", "Kurulum")));
     }
 
     /* --- Status tab --- */
@@ -265,10 +284,10 @@ int main(int argc, char **argv) {
         gtk_label_set_selectable(GTK_LABEL(l), TRUE);
         gtk_label_set_text(GTK_LABEL(l), build_status_text());
         gtk_box_pack_start(GTK_BOX(box), l, FALSE, FALSE, 0);
-        GtkWidget *b = gtk_button_new_with_label("Refresh");
+        GtkWidget *b = gtk_button_new_with_label(T("Refresh", "Yenile"));
         g_signal_connect(b, "clicked", G_CALLBACK(on_status_refresh), l);
         gtk_box_pack_start(GTK_BOX(box), b, FALSE, FALSE, 0);
-        gtk_notebook_append_page(GTK_NOTEBOOK(nb), box, tab_label_page("Status"));
+        gtk_notebook_append_page(GTK_NOTEBOOK(nb), box, tab_label_page(T("Status", "Durum")));
     }
 
     /* --- Security tab (Sentinel IDS/IPS) --- */
@@ -280,14 +299,14 @@ int main(int argc, char **argv) {
         gtk_label_set_text(GTK_LABEL(l), build_security_text());
         gtk_box_pack_start(GTK_BOX(box), l, FALSE, FALSE, 0);
         GtkWidget *row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
-        GtkWidget *b1 = gtk_button_new_with_label("Refresh");
+        GtkWidget *b1 = gtk_button_new_with_label(T("Refresh", "Yenile"));
         g_signal_connect(b1, "clicked", G_CALLBACK(on_security_refresh), l);
         gtk_box_pack_start(GTK_BOX(row), b1, TRUE, TRUE, 0);
-        GtkWidget *b2 = gtk_button_new_with_label("Run Scan Now");
+        GtkWidget *b2 = gtk_button_new_with_label(T("Run Scan Now", "Şimdi Tara"));
         g_signal_connect(b2, "clicked", G_CALLBACK(on_scan_clicked), NULL);
         gtk_box_pack_start(GTK_BOX(row), b2, TRUE, TRUE, 0);
         gtk_box_pack_start(GTK_BOX(box), row, FALSE, FALSE, 0);
-        gtk_notebook_append_page(GTK_NOTEBOOK(nb), box, tab_label_page("Security"));
+        gtk_notebook_append_page(GTK_NOTEBOOK(nb), box, tab_label_page(T("Security", "Güvenlik")));
     }
 
     /* --- About tab --- */
@@ -295,7 +314,7 @@ int main(int argc, char **argv) {
         GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
         gtk_container_set_border_width(GTK_CONTAINER(box), 16);
         char about[512];
-        snprintf(about, sizeof(about), "ALI Linux 1.2.4\nXFCE - amd64.\n\nALI Center 1.2.4 - C + GTK3 (+ Sentinel Security tab).");
+        snprintf(about, sizeof(about), "ALI Linux 1.2.5\nXFCE - amd64.\n\nALI Center 1.2.5 - C + GTK3 (+ Sentinel Security tab).");
         char *vs = read_file_all("/run/templeos-oracle");
         if (vs) {
             char *vl = strstr(vs, "verse=");
@@ -303,13 +322,13 @@ int main(int argc, char **argv) {
                 vl += 6;
                 char *nl = strchr(vl, '\n');
                 if (nl) *nl = '\0';
-                snprintf(about + strlen(about), sizeof(about) - strlen(about), "\n\nOracle says: %s", vl);
+                snprintf(about + strlen(about), sizeof(about) - strlen(about), T("\n\nOracle says: %s", "\n\nKahin diyor: %s"), vl);
             }
             free(vs);
         }
         GtkWidget *l = gtk_label_new(about);
         gtk_box_pack_start(GTK_BOX(box), l, FALSE, FALSE, 0);
-        gtk_notebook_append_page(GTK_NOTEBOOK(nb), box, tab_label_page("About"));
+        gtk_notebook_append_page(GTK_NOTEBOOK(nb), box, tab_label_page(T("About", "Hakkında")));
     }
 
     gtk_widget_show_all(win);

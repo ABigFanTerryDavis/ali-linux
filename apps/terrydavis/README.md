@@ -1,4 +1,4 @@
-# terrydavis 1.2.3 - ALI QoL daemon (7 duties)
+# terrydavis 1.2.5 - ALI QoL daemon (9 duties)
 
 Named for Terry Davis: software with soul. Quiet background comfort:
 
@@ -21,6 +21,10 @@ Named for Terry Davis: software with soul. Quiet background comfort:
 7. **Download sorter** (every 15s) - files `~/Downloads` by extension
    (ISOs/Pictures/Videos/Music/Archives/Documents), skipping files
    younger than 2 minutes so in-flight downloads are never touched.
+8. **Coffee mode** (every 1m) - inhibits suspend while SSH sessions or
+   media players are active (systemd inhibitor, released after).
+9. **Crash catcher** (hourly) - fresh coredumps / /var/crash entries
+   become one visible ping each (`coredumpctl list` for details).
 
 Needs: `x11-utils` (xprop), `redshift`, `network-manager` (nmcli).
 

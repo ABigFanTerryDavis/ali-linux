@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=ALI İlahiler
+Comment=TempleOS anısına chiptune çalar (Türkçe)
+Exec=env ALI_LANG=tr ali-hymns
+Icon=multimedia-volume-control
+Terminal=false
+Categories=AudioVideo;Audio;Player;
+Keywords=ALI;İlahi;Müzik;

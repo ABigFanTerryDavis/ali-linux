@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=ALI Hymns
+Comment=TempleOS-tribute chiptune player
+Exec=ali-hymns
+Icon=multimedia-volume-control
+Terminal=false
+Categories=AudioVideo;Audio;Player;
+Keywords=ALI;Hymns;Music;Chiptune;
