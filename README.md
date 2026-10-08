@@ -1,4 +1,4 @@
-# ALI Linux 1.2.1 - Debian trixie based, XFCE, amd64 (+ Pardus variant)
+# ALI Linux 1.2.2 - Debian trixie based, XFCE, amd64 (+ Pardus variant)
 
 Learning project. Visible rebrand only - underneath 100% Debian.
 
@@ -22,6 +22,7 @@ Learning project. Visible rebrand only - underneath 100% Debian.
 - 1.1.6 - PUSHED: Pardus keyring + repos enabled + pardus CI job (2 ISOs) + b43 pin fix
 - 1.2.0 - (staged, NO PUSH until 1.2.8) ALI Sentinel: IDS alerts + IPS auto-block, Center Security tab, ali-sentinel CLI
 - 1.2.1 - (staged, NO PUSH until 1.2.8) Odysseus v4: Sentinel memory (archive+restore blocks), boot/shutdown timing, Sentinel watchdog
+- 1.2.2 - (staged, NO PUSH until 1.2.8) terrydavis QoL daemon: Janitor cleanup, Town crier notifications, USB announcer
 
 ## Pre-push checklist (1.2.8 push - DO NOT PUSH BEFORE 1.2.8)
 ```powershell
@@ -53,14 +54,14 @@ Wait 20-40 min. Download artifact `ali-linux-iso`.
 VirtualBox:
 1. New -> Linux Debian 64-bit, 4GB RAM, 20GB VDI
 2. Settings -> System -> EFI: ON (we build grub-efi)
-3. Storage -> mount `ali-linux-1.2.1-amd64.hybrid.iso`
+3. Storage -> mount `ali-linux-1.2.2-amd64.hybrid.iso`
 4. Start -> Try Live -> user `ali`, then double-click Debian Installer to install to disk.
 
 QEMU (faster check):
 ```powershell
-qemu-system-x86_64 -m 4096 -cdrom ali-linux-1.2.1-amd64.hybrid.iso -boot d -enable-hvm
+qemu-system-x86_64 -m 4096 -cdrom ali-linux-1.2.2-amd64.hybrid.iso -boot d -enable-hvm
 # with UEFI:
-qemu-system-x86_64 -m 4096 -bios "C:\Program Files\qemu\share\OVMF.fd" -cdrom ali-linux-1.2.1-amd64.hybrid.iso -boot d
+qemu-system-x86_64 -m 4096 -bios "C:\Program Files\qemu\share\OVMF.fd" -cdrom ali-linux-1.2.2-amd64.hybrid.iso -boot d
 ```
 
 Verify branding:
@@ -73,7 +74,7 @@ fastfetch
 ## Structure
 - `debian13/auto/config` - Debian trixie live-build (the image CI builds)
 - `pardus/` - Pardus 25 variant (repos enabled, CI builds 2nd ISO - see `pardus/README-VARIANT.md`)
-- `apps/` - shared ALI apps (Center, Notepad, Terminal, commands, Odysseus, Sentinel)
+- `apps/` - shared ALI apps (Center, Notepad, Terminal, commands, Odysseus, Sentinel, terrydavis)
 - `debian13/config/package-lists/ali-xfce.list.chroot` - XFCE pkgs
 - `debian13/config/includes.chroot/etc/` - os-release, hostname, motd
 - `debian13/config/hooks/normal/0099-ali-branding.hook.chroot` - enforces branding

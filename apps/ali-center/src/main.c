@@ -22,7 +22,7 @@ static void launch_async(const char *cmd) {
 
 static void read_os_pretty(char *out, size_t n) {
     FILE *f = fopen("/etc/os-release", "r");
-    snprintf(out, n, "ALI Linux 1.2.1");
+    snprintf(out, n, "ALI Linux 1.2.2");
     if (!f) return;
     char line[256];
     while (fgets(line, sizeof(line), f)) {
@@ -294,7 +294,7 @@ int main(int argc, char **argv) {
     {
         GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
         gtk_container_set_border_width(GTK_CONTAINER(box), 16);
-        GtkWidget *l = gtk_label_new("ALI Linux 1.2.1\nXFCE - amd64.\n\nALI Center 1.2.1 - C + GTK3 (+ Sentinel Security tab).");
+        GtkWidget *l = gtk_label_new("ALI Linux 1.2.2\nXFCE - amd64.\n\nALI Center 1.2.2 - C + GTK3 (+ Sentinel Security tab).");
         gtk_box_pack_start(GTK_BOX(box), l, FALSE, FALSE, 0);
         gtk_notebook_append_page(GTK_NOTEBOOK(nb), box, tab_label_page("About"));
     }

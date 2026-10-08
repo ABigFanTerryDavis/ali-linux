@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 # Build ali-center .deb for Debian trixie amd64
-VER=1.2.1
+VER=1.2.2
 rm -rf build
 mkdir -p build/DEBIAN build/usr/bin build/usr/share/applications
 make
