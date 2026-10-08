@@ -1,0 +1,14 @@
+[Unit]
+Description=ALI oracle - security voice (verdicts + lots)
+Documentation=https://github.com/
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/oracle
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

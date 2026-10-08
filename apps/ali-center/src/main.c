@@ -26,7 +26,7 @@ static const char *T(const char *en, const char *tr) { return LANG_TR ? tr : en;
 
 static void read_os_pretty(char *out, size_t n) {
     FILE *f = fopen("/etc/os-release", "r");
-    snprintf(out, n, "ALI Linux 1.3.1");
+    snprintf(out, n, "ALI Linux 1.3.2");
     if (!f) return;
     char line[256];
     while (fgets(line, sizeof(line), f)) {
@@ -152,7 +152,9 @@ static void on_status_refresh(GtkButton *b, gpointer u) {
 static char sentinel_buf[4096];
 static const char *build_security_text(void) {
     GString *s = g_string_new(NULL);
-    char *feed = read_file_all("/run/ali-security");
+    /* Oracle first (unified verdicts+lots), raw Sentinel feed as fallback */
+    char *feed = read_file_all("/run/ali-oracle");
+    if (!feed) feed = read_file_all("/run/ali-security");
     if (feed) {
         g_string_append(s, T("Sentinel: running (IDS watch + IPS exterminate)\n\n",
             "Sentinel: çalışıyor (IDS izleme + IPS engelleme)\n\n"));
@@ -373,7 +375,7 @@ int main(int argc, char **argv) {
         GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
         gtk_container_set_border_width(GTK_CONTAINER(box), 16);
         char about[512];
-        snprintf(about, sizeof(about), "ALI Linux 1.3.1\nXFCE - amd64.\n\nALI Center 1.3.1 - C + GTK3 (+ Sentinel Security tab).");
+        snprintf(about, sizeof(about), "ALI Linux 1.3.2\nXFCE - amd64.\n\nALI Center 1.3.2 - C + GTK3 (+ Sentinel Security tab).");
         char *vs = read_file_all("/run/templeos-oracle");
         if (vs) {
             char *vl = strstr(vs, "verse=");

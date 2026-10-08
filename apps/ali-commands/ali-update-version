@@ -72,7 +72,7 @@ if [ ! -d "$SRC/$INCLUDES/config/includes.chroot/usr/bin" ] && [ -d "$SRC/config
 fi
 INC="$SRC/$INCLUDES/config/includes.chroot"
 [ "$INCLUDES" = "." ] && INC="$SRC/config/includes.chroot"
-for f in ali-update ali-info ali-perf ali-normal ali-update-version ali-terminal odysseus sentinel ali-sentinel terrydavis templeos ali-oracle ali-retro terry-dice ali-passgen ali-vault; do
+for f in ali-update ali-info ali-perf ali-normal ali-update-version ali-terminal odysseus sentinel ali-sentinel terrydavis templeos ali-oracle ali-retro terry-dice ali-passgen ali-vault oracle; do
   if [ -f "$INC/usr/bin/$f" ]; then
     sudo install -m755 "$INC/usr/bin/$f" /usr/bin/$f
   elif [ -f "$SRC/apps/odysseus/$f" ]; then
@@ -84,7 +84,7 @@ done
 sudo cp -r "$INC/usr/share/applications/." /usr/share/applications/ 2>/dev/null || true
 sudo cp -r "$INC/usr/share/ali/." /usr/share/ali/ 2>/dev/null || true
 sudo cp -r "$INC/usr/share/backgrounds/." /usr/share/backgrounds/ 2>/dev/null || true
-for unit in odysseus sentinel terrydavis templeos; do
+for unit in odysseus sentinel terrydavis templeos oracle; do
   if [ -f "$INC/usr/lib/systemd/system/$unit.service" ]; then
     sudo cp "$INC/usr/lib/systemd/system/$unit.service" /usr/lib/systemd/system/
     sudo systemctl daemon-reload 2>/dev/null || true
@@ -105,5 +105,5 @@ if [ -f /etc/lsb-release ]; then
 fi
 
 echo "ALI layer now at $TARGET."
-echo "Debian base is separate: run ali-update for that."
+echo "Base system is separate: run ali-update for that."
 echo "Reboot recommended if Odysseus or boot entries changed."

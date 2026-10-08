@@ -1,0 +1,86 @@
+#!/bin/sh
+# oracle - ALI security voice. One daemon, one feed (/run/ali-oracle), two voices:
+#   [verdict] - security state, rendered from Sentinel/Odysseus/vault/dice.
+#               Speaks only when the state CHANGES (no nagging).
+#   [lots]    - the templeos word-oracle, relayed hourly (soul included).
+# Center's Security tab reads this feed; the raw feeds stay as sources.
+set -u
+STATE="${STATE:-/var/lib/ali-oracle}"
+FEED="${FEED:-/run/ali-oracle}"
+SFEED="${SFEED:-/run/ali-security}"
+ODSTATUS="${ODSTATUS:-/run/odysseus-status}"
+LOTSFEED="${LOTSFEED:-/run/templeos-oracle}"
+LOG="${LOG:-/var/log/oracle.log}"
+mkdir -p "$STATE"
+touch "$LOG" 2>/dev/null || true
+
+log() {
+    echo "$(date '+%F %T') oracle: $1" >> "$LOG" 2>/dev/null || true
+}
+
+emit() {
+    # $1 = voice (verdict|lots), $2... = message
+    line="$(date '+%F %T') [$1] $2"
+    echo "$line" >> "$FEED" 2>/dev/null || true
+    tail -n 40 "$FEED" > "$FEED.tmp" 2>/dev/null && mv "$FEED.tmp" "$FEED" 2>/dev/null || true
+    log "[$1] $2"
+}
+
+counts() {
+    # b|a|v|warn|sea (pipe-separated: warnings contain spaces)
+    b=0; a=0; v=0
+    if [ -f "$SFEED" ]; then
+        b=$(grep -c 'BLOCKED' "$SFEED" 2>/dev/null || true)
+        a=$(grep -c 'ALERT' "$SFEED" 2>/dev/null || true)
+        v=$(grep -c 'vault: failed' "$SFEED" 2>/dev/null || true)
+    fi
+    w="none"
+    s="calm"
+    if [ -f "$ODSTATUS" ]; then
+        w=$(grep -a '^last_warn=' "$ODSTATUS" 2>/dev/null | cut -d= -f2-)
+        s=$(grep -a '^sea=' "$ODSTATUS" 2>/dev/null | cut -d= -f2-)
+    fi
+    printf '%s|%s|%s|%s|%s' "$b" "$a" "$v" "${w:-none}" "${s:-calm}"
+}
+
+verdict() {
+    cur=$(counts)
+    old=$(cat "$STATE/seen" 2>/dev/null)
+    [ "$cur" = "$old" ] && return 0
+    first=0
+    [ -z "$old" ] && first=1
+    echo "$cur" > "$STATE/seen"
+    r="$cur"
+    b="${r%%|*}"; r="${r#*|}"
+    a="${r%%|*}"; r="${r#*|}"
+    v="${r%%|*}"; r="${r#*|}"
+    w="${r%%|*}"; s="${r#*|}"
+    msg="standing blocks: $b, alerts: $a, vault fails: $v, sea: $s"
+    [ "$w" != "none" ] && [ -n "$w" ] && msg="$msg (warn: $w)"
+    if [ "$first" = "1" ]; then
+        emit verdict "awake. $msg"
+    else
+        emit verdict "$msg"
+    fi
+}
+
+relay_lots() {
+    # templeos owns the lots; we relay them so the feed is whole.
+    [ -f "$LOTSFEED" ] || return 0
+    if [ "$LOTSFEED" -nt "$STATE/lots.seen" ] 2>/dev/null || [ ! -f "$STATE/lots.seen" ]; then
+        word=$(grep -a '^oracle=' "$LOTSFEED" 2>/dev/null | cut -d= -f2-)
+        verse=$(grep -a '^verse=' "$LOTSFEED" 2>/dev/null | cut -d= -f2-)
+        [ -n "$word" ] && emit lots "$word - $verse"
+        touch "$STATE/lots.seen" 2>/dev/null || true
+    fi
+}
+
+case "${1:-}" in
+    --once) verdict; relay_lots ;;
+    *)  log "starting (verdicts + lots)"
+        while true; do
+            verdict
+            relay_lots
+            sleep 60
+        done ;;
+esac

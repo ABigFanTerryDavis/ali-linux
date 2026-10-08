@@ -4,10 +4,10 @@ set -e
 # Overwrites base-files on every build so branding survives upgrades in the live system
 
 cat > /etc/os-release <<'EOF'
-PRETTY_NAME="ALI Linux 1.3.1"
+PRETTY_NAME="ALI Linux 1.3.2"
 NAME="ALI Linux"
-VERSION_ID="1.3.1"
-VERSION="1.3.1"
+VERSION_ID="1.3.2"
+VERSION="1.3.2"
 ID=ali
 ID_LIKE=debian
 HOME_URL="https://github.com/"
@@ -16,9 +16,9 @@ EOF
 
 cat > /etc/lsb-release <<'EOF'
 DISTRIB_ID="ALI Linux"
-DISTRIB_RELEASE=1.3.1
+DISTRIB_RELEASE=1.3.2
 DISTRIB_CODENAME=ali
-DISTRIB_DESCRIPTION="ALI Linux 1.3.1"
+DISTRIB_DESCRIPTION="ALI Linux 1.3.2"
 EOF
 
 echo "ali" > /etc/hostname
@@ -30,9 +30,9 @@ ff02::1 ip6-allnodes
 ff02::2 ip6-allrouters
 EOF
 
-echo "ALI Linux 1.3.1 \\n \\l" > /etc/issue
-echo "ALI Linux 1.3.1" > /etc/issue.net
-echo "ALI Linux 1.3.1" > /etc/motd
+echo "ALI Linux 1.3.2 \\n \\l" > /etc/issue
+echo "ALI Linux 1.3.2" > /etc/issue.net
+echo "ALI Linux 1.3.2" > /etc/motd
 
 # LightDM greeter branding if present
 if [ -d /etc/lightdm ]; then
@@ -57,7 +57,7 @@ cat > /usr/share/backgrounds/ali/ali-wallpaper.svg <<'EOF'
 EOF
 
 # ALI Terminal + commands visible rebrand - wrappers come from includes.chroot
-chmod +x /usr/bin/ali-terminal /usr/bin/ali-update /usr/bin/ali-info /usr/bin/ali-perf /usr/bin/ali-normal /usr/bin/ali-update-version /usr/bin/ali-sentinel /usr/bin/odysseus /usr/bin/sentinel /usr/bin/terrydavis /usr/bin/templeos /usr/bin/ali-oracle /usr/bin/ali-retro /usr/bin/terry-dice /usr/bin/ali-passgen /usr/bin/ali-vault 2>/dev/null || true
+chmod +x /usr/bin/ali-terminal /usr/bin/ali-update /usr/bin/ali-info /usr/bin/ali-perf /usr/bin/ali-normal /usr/bin/ali-update-version /usr/bin/ali-sentinel /usr/bin/odysseus /usr/bin/sentinel /usr/bin/terrydavis /usr/bin/templeos /usr/bin/ali-oracle /usr/bin/ali-retro /usr/bin/terry-dice /usr/bin/ali-passgen /usr/bin/ali-vault /usr/bin/oracle 2>/dev/null || true
 
 # Odysseus - enable first-up last-down task (symlink; git can't store it)
 mkdir -p /etc/systemd/system/sysinit.target.wants
@@ -72,6 +72,9 @@ ln -sf /usr/lib/systemd/system/terrydavis.service /etc/systemd/system/multi-user
 
 # templeos - enable tribute daemon (oracle + verse)
 ln -sf /usr/lib/systemd/system/templeos.service /etc/systemd/system/multi-user.target.wants/templeos.service || true
+
+# oracle - enable security voice (verdicts + lots)
+ln -sf /usr/lib/systemd/system/oracle.service /etc/systemd/system/multi-user.target.wants/oracle.service || true
 
 # ALI security defaults - firewall + automatic security updates
 if command -v ufw >/dev/null 2>&1; then
@@ -92,7 +95,7 @@ EOF
 if [ -f /etc/bash.bashrc ] && ! grep -q "ali-safe-rm.sh" /etc/bash.bashrc 2>/dev/null; then
   echo '[ -f /etc/ali-safe-rm.sh ] && . /etc/ali-safe-rm.sh' >> /etc/bash.bashrc || true
 fi
-# ALI terminal billboard - fastfetch on every interactive terminal (1.3.1)
+# ALI terminal billboard - fastfetch on every interactive terminal (1.3.2)
 if [ -f /etc/bash.bashrc ] && ! grep -q "ALI terminal billboard" /etc/bash.bashrc 2>/dev/null; then
   cat >> /etc/bash.bashrc <<'EOF' || true
 # ALI terminal billboard
@@ -182,7 +185,7 @@ cat > /usr/share/ali/fastfetch-logo.txt <<'EOF'
  / ___ |/ /___ / /
 /_/  |_/_____/___/
 
-ALI Linux 1.3.1 - XFCE
+ALI Linux 1.3.2 - XFCE
 EOF
 cat > /etc/skel/.config/fastfetch/config.jsonc <<'EOF'
 {

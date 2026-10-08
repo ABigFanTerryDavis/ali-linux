@@ -86,6 +86,16 @@ def _(s):
         return TRMAP.get(s, s)
     return s
 
+# ALI house daemons run as shell scripts (Name column says "sh").
+# refresh_processes() shows their true names instead - the cmdline proves it.
+ALI_NAMES = {
+    "/usr/bin/odysseus": "odysseus",
+    "/usr/bin/sentinel": "sentinel",
+    "/usr/bin/terrydavis": "terrydavis",
+    "/usr/bin/templeos": "templeos",
+    "/usr/bin/oracle": "oracle",
+}
+
 def format_mb(bytes_val):
     return f"{bytes_val / 1024 / 1024:.1f}"
 
@@ -501,6 +511,10 @@ class ProcessManager(QMainWindow):
                     status = info['status'] or ""
                     user = info['username'] or ""
                     cmd = " ".join(info['cmdline']) if info['cmdline'] else name
+                    for _ap, _an in ALI_NAMES.items():
+                        if _ap in (info['cmdline'] or []):
+                            name = _an
+                            break
                     users.add(user)
                     procs.append((pid, name, cpu, mem_p, mem_mb, status, user, cmd))
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
