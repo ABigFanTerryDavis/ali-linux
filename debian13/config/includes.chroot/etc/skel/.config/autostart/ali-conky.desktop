@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=ALI Conky HUD
+Comment=System stats on the desktop
+Exec=conky --daemonize --pause=3
+Icon=utilities-system-monitor
+Terminal=false
+Categories=System;
+X-GNOME-Autostart-enabled=true

@@ -26,7 +26,7 @@ static const char *T(const char *en, const char *tr) { return LANG_TR ? tr : en;
 
 static void read_os_pretty(char *out, size_t n) {
     FILE *f = fopen("/etc/os-release", "r");
-    snprintf(out, n, "ALI Linux 1.3.0");
+    snprintf(out, n, "ALI Linux 1.3.1");
     if (!f) return;
     char line[256];
     while (fgets(line, sizeof(line), f)) {
@@ -373,7 +373,7 @@ int main(int argc, char **argv) {
         GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
         gtk_container_set_border_width(GTK_CONTAINER(box), 16);
         char about[512];
-        snprintf(about, sizeof(about), "ALI Linux 1.3.0\nXFCE - amd64.\n\nALI Center 1.3.0 - C + GTK3 (+ Sentinel Security tab).");
+        snprintf(about, sizeof(about), "ALI Linux 1.3.1\nXFCE - amd64.\n\nALI Center 1.3.1 - C + GTK3 (+ Sentinel Security tab).");
         char *vs = read_file_all("/run/templeos-oracle");
         if (vs) {
             char *vl = strstr(vs, "verse=");

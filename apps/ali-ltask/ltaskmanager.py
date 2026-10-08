@@ -1,6 +1,7 @@
 # ALI Linux port (1.2.6) of LTaskManager by MerixCipher (MIT):
 # https://github.com/MerixCipher/LTaskManager @ 5cb21b3
-# ALI diff vs upstream: window/sidebar titles + footer rebranded.
+# ALI diff vs upstream: window/sidebar titles + footer rebranded (1.2.6),
+# full Turkish display pass via _()/TRMAP + index-keyed sort/filter (1.3.1).
 # Everything else is byte-identical upstream - send app bugs there.
 import sys
 import psutil
@@ -23,6 +24,67 @@ except Exception:
 
 COLS = ["PID", "Name", "CPU %", "Memory %", "Memory MB", "Status", "User", "Command"]
 REFRESH_MS = 2000
+
+# ALI Turkish pass (1.3.1): ALI_LANG=tr translates display strings only.
+# Internal keys (sort mapping, user-filter index) stay English on purpose.
+import os as _os
+TR = _os.environ.get("ALI_LANG", "").lower() == "tr"
+TRMAP = {
+    "CPU": "CPU",
+    "Performance": "Performans",
+    "Processes": "İşlemler",
+    "Process Manager": "İşlem Yöneticisi",
+    "Uptime": "Süre",
+    "Processes": "İşlemler",
+    "Process Manager": "İşlem Yöneticisi",
+    "Memory": "Bellek",
+    "Network": "Ağ",
+    "Disk": "Disk",
+    "Name": "Ad",
+    "Memory %": "Bellek %",
+    "Memory MB": "Bellek MB",
+    "Status": "Durum",
+    "User": "Kullanıcı",
+    "Command": "Komut",
+    "All Users": "Tüm Kullanıcılar",
+    "Search PID / Name / User / Command...": "PID / Ad / Kullanıcı / Komut ara...",
+    "Sort:": "Sırala:",
+    "Sort:": "Sırala:",
+    "Refresh": "Yenile",
+    "End Task": "Görevi Sonlandır",
+    "End Process Tree": "İşlem Ağacını Sonlandır",
+    "Restart Service": "Hizmeti Yeniden Başlat",
+    "Loading...": "Yükleniyor...",
+    "Success": "Başarılı",
+    "Timeout": "Zaman Aşımı",
+    "Service restart timed out.": "Hizmet yeniden başlatma zaman aşımına uğradı.",
+    "Not Found": "Bulunamadı",
+    "systemctl not found. Not a systemd system?": "systemctl bulunamadı. systemd sistemi değil mi?",
+    "Error": "Hata",
+    "Select": "Seç",
+    "Select a process to end.": "Sonlandırılacak işlemi seç.",
+    "Select a process.": "Bir işlem seç.",
+    "Blocked": "Engellendi",
+    "Cannot kill PID 0/1.": "PID 0/1 öldürülemez.",
+    "Gone": "Gitti",
+    "Process already exited.": "İşlem zaten kapanmış.",
+    "Access Denied": "Erişim Reddedildi",
+    "Suspend": "Askıya Al",
+    "Resume": "Sürdür",
+    "Copy PID / Command": "PID / Komut Kopyala",
+    "CPU detail": "CPU ayrıntı",
+    "Memory detail": "Bellek ayrıntı",
+    "Disk detail": "Disk ayrıntı",
+    "Network detail": "Ağ ayrıntı",
+    "GPU: No dedicated GPU detected (nvidia-smi not found) — Integrated graphics": "GPU: Adanmış GPU bulunamadı (nvidia-smi yok) — Tümleşik grafik",
+    "pyqtgraph not installed — install with: pip install pyqtgraph\n\nShowing bars instead of graphs.": "pyqtgraph kurulu değil — kur: pip install pyqtgraph\n\nGrafik yerine çubuklar.",
+}
+SORT_KEYS = ["CPU %", "Memory %", "PID", "Name"]
+
+def _(s):
+    if TR:
+        return TRMAP.get(s, s)
+    return s
 
 def format_mb(bytes_val):
     return f"{bytes_val / 1024 / 1024:.1f}"
@@ -48,7 +110,7 @@ class PerformanceWidget(QWidget):
         self.last_time = datetime.datetime.now()
 
         layout = QVBoxLayout(self)
-        title = QLabel("Performance")
+        title = QLabel(_("Performance"))
         title.setStyleSheet("font-size: 18px; font-weight: bold; padding: 4px;")
         layout.addWidget(title)
 
@@ -62,28 +124,28 @@ class PerformanceWidget(QWidget):
             grid.setSpacing(12)
 
             # CPU graph
-            self.cpu_label = QLabel("CPU — 0%")
+            self.cpu_label = QLabel(_("CPU") + " — 0%")
             self.cpu_label.setStyleSheet("font-weight: bold;")
             self.cpu_plot = pg.PlotWidget()
             self.setup_plot(self.cpu_plot, "CPU %", "red")
             self.cpu_curve = self.cpu_plot.plot(list(self.cpu_hist), pen=pg.mkPen("#e53935", width=2))
 
             # Memory graph
-            self.mem_label = QLabel("Memory — 0%")
+            self.mem_label = QLabel(_("Memory") + " — %0")
             self.mem_label.setStyleSheet("font-weight: bold;")
             self.mem_plot = pg.PlotWidget()
             self.setup_plot(self.mem_plot, "Memory %", "#1e88e5")
             self.mem_curve = self.mem_plot.plot(list(self.mem_hist), pen=pg.mkPen("#1e88e5", width=2))
 
             # Disk graph
-            self.disk_label = QLabel("Disk I/O — 0 MB/s")
+            self.disk_label = QLabel(_("Disk") + " G/Ç — 0 MB/s")
             self.disk_label.setStyleSheet("font-weight: bold;")
             self.disk_plot = pg.PlotWidget()
             self.setup_plot(self.disk_plot, "Disk MB/s", "#43a047")
             self.disk_curve = self.disk_plot.plot(list(self.disk_hist), pen=pg.mkPen("#43a047", width=2))
 
             # Network graph
-            self.net_label = QLabel("Network I/O — 0 MB/s")
+            self.net_label = QLabel(_("Network") + " G/Ç — 0 MB/s")
             self.net_label.setStyleSheet("font-weight: bold;")
             self.net_plot = pg.PlotWidget()
             self.setup_plot(self.net_plot, "Network MB/s", "#fb8c00")
@@ -107,35 +169,35 @@ class PerformanceWidget(QWidget):
 
             # bottom stats + gpu
             bottom = QHBoxLayout()
-            self.cpu_detail = QLabel("CPU detail")
+            self.cpu_detail = QLabel(_("CPU detail"))
             self.cpu_detail.setStyleSheet("font-size: 11px; color: #444;")
-            self.mem_detail = QLabel("Memory detail")
+            self.mem_detail = QLabel(_("Memory detail"))
             self.mem_detail.setStyleSheet("font-size: 11px; color: #444;")
-            self.disk_detail = QLabel("Disk detail")
+            self.disk_detail = QLabel(_("Disk detail"))
             self.disk_detail.setStyleSheet("font-size: 11px; color: #444;")
-            self.net_detail = QLabel("Network detail")
+            self.net_detail = QLabel(_("Network detail"))
             self.net_detail.setStyleSheet("font-size: 11px; color: #444;")
             for w in [self.cpu_detail, self.mem_detail, self.disk_detail, self.net_detail]:
                 bottom.addWidget(w)
             layout.addLayout(bottom)
 
             # GPU placeholder (no nvidia-smi on this machine)
-            self.gpu_label = QLabel("GPU: No dedicated GPU detected (nvidia-smi not found) — Integrated graphics")
+            self.gpu_label = QLabel(_("GPU: No dedicated GPU detected (nvidia-smi not found) — Integrated graphics"))
             self.gpu_label.setStyleSheet("background: #f5f5f5; border: 1px solid #ddd; padding: 8px; font-size: 11px; color: #666;")
             layout.addWidget(self.gpu_label)
         else:
             # fallback without pyqtgraph
-            fallback = QLabel("pyqtgraph not installed — install with: pip install pyqtgraph\n\nShowing bars instead of graphs.")
+            fallback = QLabel(_("pyqtgraph not installed — install with: pip install pyqtgraph\n\nShowing bars instead of graphs."))
             fallback.setStyleSheet("color: #d32f2f;")
             layout.addWidget(fallback)
             self.cpu_bar = QProgressBar()
             self.mem_bar = QProgressBar()
             self.disk_bar = QProgressBar()
-            layout.addWidget(QLabel("CPU"))
+            layout.addWidget(QLabel(_("CPU")))
             layout.addWidget(self.cpu_bar)
-            layout.addWidget(QLabel("Memory"))
+            layout.addWidget(QLabel(_("Memory")))
             layout.addWidget(self.mem_bar)
-            layout.addWidget(QLabel("Disk"))
+            layout.addWidget(QLabel(_("Disk")))
             layout.addWidget(self.disk_bar)
 
         layout.addStretch()
@@ -186,17 +248,17 @@ class PerformanceWidget(QWidget):
             self.disk_curve.setData(list(self.disk_hist))
             self.net_curve.setData(list(self.net_hist))
 
-            self.cpu_label.setText(f"CPU — {cpu:.1f}%")
-            self.mem_label.setText(f"Memory — {mem.percent:.1f}% ({format_mb(mem.used)} / {format_mb(mem.total)} MB)")
-            self.disk_label.setText(f"Disk I/O — {disk_rate:.1f} MB/s")
-            self.net_label.setText(f"Network I/O — {net_rate:.1f} MB/s")
+            self.cpu_label.setText(f"CPU — {cpu:.1f}%" if not TR else f"CPU — %{cpu:.1f}")
+            self.mem_label.setText(f"Memory — {mem.percent:.1f}% ({format_mb(mem.used)} / {format_mb(mem.total)} MB)" if not TR else f"Bellek — %{mem.percent:.1f} ({format_mb(mem.used)} / {format_mb(mem.total)} MB)")
+            self.disk_label.setText(f"Disk I/O — {disk_rate:.1f} MB/s" if not TR else f"Disk G/Ç — {disk_rate:.1f} MB/s")
+            self.net_label.setText(f"Network I/O — {net_rate:.1f} MB/s" if not TR else f"Ağ G/Ç — {net_rate:.1f} MB/s")
 
             freq = psutil.cpu_freq()
             freq_str = f"{freq.current:.0f} MHz" if freq else "N/A"
-            self.cpu_detail.setText(f"Cores: {psutil.cpu_count()} • Freq: {freq_str} • Uptime: {str(datetime.datetime.now() - datetime.datetime.fromtimestamp(psutil.boot_time())).split('.')[0]}")
-            self.mem_detail.setText(f"Avail: {format_bytes(mem.available)} • Used: {format_bytes(mem.used)}")
-            self.disk_detail.setText(f"Used: {format_bytes(disk.used)} / {format_bytes(disk.total)} ({disk.percent}%)")
-            self.net_detail.setText(f"Sent: {format_bytes(net_io.bytes_sent)} • Recv: {format_bytes(net_io.bytes_recv)}")
+            self.cpu_detail.setText(f"Cores: {psutil.cpu_count()} • Freq: {freq_str} • Uptime: {str(datetime.datetime.now() - datetime.datetime.fromtimestamp(psutil.boot_time())).split('.')[0]}" if not TR else f"Çekirdek: {psutil.cpu_count()} • Frekans: {freq_str} • Süre: {str(datetime.datetime.now() - datetime.datetime.fromtimestamp(psutil.boot_time())).split('.')[0]}")
+            self.mem_detail.setText(f"Avail: {format_bytes(mem.available)} • Used: {format_bytes(mem.used)}" if not TR else f"Boş: {format_bytes(mem.available)} • Dolu: {format_bytes(mem.used)}")
+            self.disk_detail.setText(f"Used: {format_bytes(disk.used)} / {format_bytes(disk.total)} ({disk.percent}%)" if not TR else f"Dolu: {format_bytes(disk.used)} / {format_bytes(disk.total)} (%{disk.percent})")
+            self.net_detail.setText(f"Sent: {format_bytes(net_io.bytes_sent)} • Recv: {format_bytes(net_io.bytes_recv)}" if not TR else f"Gönderilen: {format_bytes(net_io.bytes_sent)} • Alınan: {format_bytes(net_io.bytes_recv)}")
         else:
             self.cpu_bar.setValue(int(cpu))
             self.mem_bar.setValue(int(mem.percent))
@@ -231,8 +293,8 @@ class ProcessManager(QMainWindow):
         sb_title.setStyleSheet("color: white; font-size: 15px; font-weight: bold; padding: 8px 4px;")
         sb_layout.addWidget(sb_title)
 
-        self.btn_proc = QPushButton("  ◉  Processes")
-        self.btn_perf = QPushButton("  ◈  Performance")
+        self.btn_proc = QPushButton("  ◉  " + _("Processes"))
+        self.btn_perf = QPushButton("  ◈  " + _("Performance"))
         for b in [self.btn_proc, self.btn_perf]:
             b.setFixedHeight(42)
             b.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -261,16 +323,16 @@ class ProcessManager(QMainWindow):
         layout = QVBoxLayout(self.page_proc)
         layout.setContentsMargins(12,12,12,12)
 
-        title = QLabel("Process Manager")
+        title = QLabel(_("Process Manager"))
         title.setStyleSheet("font-size: 18px; font-weight: bold; padding: 4px;")
         layout.addWidget(title)
 
         stats_layout = QHBoxLayout()
         self.cpu_label = QLabel("CPU: --")
-        self.mem_label = QLabel("Memory: --")
-        self.disk_label = QLabel("Disk: --")
-        self.proc_count_label = QLabel("Processes: --")
-        self.uptime_label = QLabel("Uptime: --")
+        self.mem_label = QLabel(_("Memory") + ": --")
+        self.disk_label = QLabel(_("Disk") + ": --")
+        self.proc_count_label = QLabel(_("Processes") + ": --")
+        self.uptime_label = QLabel(_("Uptime") + ": --")
 
         self.cpu_bar = QProgressBar()
         self.cpu_bar.setMaximum(100)
@@ -289,39 +351,39 @@ class ProcessManager(QMainWindow):
 
         top_layout = QHBoxLayout()
         self.search = QLineEdit()
-        self.search.setPlaceholderText("Search PID / Name / User / Command...")
+        self.search.setPlaceholderText(_("Search PID / Name / User / Command..."))
         self.search.textChanged.connect(self.apply_filter)
         top_layout.addWidget(self.search, stretch=3)
 
         self.user_filter = QComboBox()
-        self.user_filter.addItem("All Users")
+        self.user_filter.addItem(_("All Users"))
         self.user_filter.currentTextChanged.connect(self.apply_filter)
         top_layout.addWidget(self.user_filter)
 
         self.sort_combo = QComboBox()
-        self.sort_combo.addItems(["CPU %", "Memory %", "PID", "Name"])
-        self.sort_combo.setCurrentText("CPU %")
+        self.sort_combo.addItems([_(k) for k in SORT_KEYS])
+        self.sort_combo.setCurrentIndex(0)
         self.sort_combo.currentTextChanged.connect(self.on_sort_changed)
-        top_layout.addWidget(QLabel("Sort:"))
+        top_layout.addWidget(QLabel(_("Sort:")))
         top_layout.addWidget(self.sort_combo)
 
-        self.refresh_btn = QPushButton("Refresh")
+        self.refresh_btn = QPushButton(_("Refresh"))
         self.refresh_btn.clicked.connect(self.refresh_processes)
         top_layout.addWidget(self.refresh_btn)
 
-        self.kill_btn = QPushButton("End Task")
+        self.kill_btn = QPushButton(_("End Task"))
         self.kill_btn.setStyleSheet("background-color: #d32f2f; color: white; font-weight: bold; padding: 6px 14px;")
         self.kill_btn.clicked.connect(self.kill_process)
         top_layout.addWidget(self.kill_btn)
 
-        self.kill_tree_btn = QPushButton("End Process Tree")
+        self.kill_tree_btn = QPushButton(_("End Process Tree"))
         self.kill_tree_btn.clicked.connect(self.kill_tree)
         top_layout.addWidget(self.kill_tree_btn)
 
         layout.addLayout(top_layout)
 
         self.table = QTableWidget(0, len(COLS))
-        self.table.setHorizontalHeaderLabels(COLS)
+        self.table.setHorizontalHeaderLabels([_(c) for c in COLS])
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Interactive)
@@ -348,7 +410,7 @@ class ProcessManager(QMainWindow):
         self.table.customContextMenuRequested.connect(self.show_context_menu)
         layout.addWidget(self.table)
 
-        self.status = QLabel("Loading...")
+        self.status = QLabel(_("Loading..."))
         self.status.setStyleSheet("color: #666; font-size: 11px;")
         layout.addWidget(self.status)
 
@@ -386,8 +448,10 @@ class ProcessManager(QMainWindow):
         self.btn_perf.setStyleSheet(active if idx==1 else inactive)
 
     def on_sort_changed(self, text):
+        idx = self.sort_combo.currentIndex()
+        key = SORT_KEYS[idx] if 0 <= idx < len(SORT_KEYS) else "CPU %"
         mapping = {"PID": 0, "Name": 1, "CPU %": 2, "Memory %": 3}
-        self.sort_col = mapping.get(text, 2)
+        self.sort_col = mapping.get(key, 2)
         self.apply_filter()
 
     def on_header_clicked(self, col):
@@ -399,7 +463,7 @@ class ProcessManager(QMainWindow):
         rev = {0:"PID",1:"Name",2:"CPU %",3:"Memory %"}
         if col in rev:
             self.sort_combo.blockSignals(True)
-            self.sort_combo.setCurrentText(rev[col])
+            self.sort_combo.setCurrentText(_(rev[col]))
             self.sort_combo.blockSignals(False)
         self.apply_filter()
 
@@ -413,12 +477,12 @@ class ProcessManager(QMainWindow):
             hours, rem = divmod(int(uptime.total_seconds()), 3600)
             mins, secs = divmod(rem, 60)
 
-            self.cpu_label.setText(f"CPU: {cpu_total:.1f}%")
+            self.cpu_label.setText(f"CPU: {cpu_total:.1f}%" if not TR else f"CPU: %{cpu_total:.1f}")
             self.cpu_bar.setValue(int(cpu_total))
-            self.mem_label.setText(f"Memory: {mem.percent:.1f}% ({format_mb(mem.used)} / {format_mb(mem.total)} MB)")
+            self.mem_label.setText(f"Memory: {mem.percent:.1f}% ({format_mb(mem.used)} / {format_mb(mem.total)} MB)" if not TR else f"Bellek: %{mem.percent:.1f} ({format_mb(mem.used)} / {format_mb(mem.total)} MB)")
             self.mem_bar.setValue(int(mem.percent))
-            self.disk_label.setText(f"Disk: {disk.percent:.1f}%")
-            self.uptime_label.setText(f"Uptime: {hours}h {mins}m")
+            self.disk_label.setText(f"Disk: {disk.percent:.1f}%" if not TR else f"Disk: %{disk.percent:.1f}")
+            self.uptime_label.setText(f"Uptime: {hours}h {mins}m" if not TR else f"Süre: {hours}s {mins}d")
 
             procs = []
             users = set()
@@ -443,12 +507,12 @@ class ProcessManager(QMainWindow):
                     continue
 
             self.all_procs = procs
-            self.proc_count_label.setText(f"Processes: {len(procs)}")
+            self.proc_count_label.setText(f"Processes: {len(procs)}" if not TR else f"İşlemler: {len(procs)}")
 
             current_user = self.user_filter.currentText()
             self.user_filter.blockSignals(True)
             self.user_filter.clear()
-            self.user_filter.addItem("All Users")
+            self.user_filter.addItem(_("All Users"))
             for u in sorted(users):
                 if u:
                     self.user_filter.addItem(u)
@@ -458,7 +522,7 @@ class ProcessManager(QMainWindow):
 
             self.apply_filter()
         except Exception as e:
-            self.status.setText(f"Error: {e}")
+            self.status.setText(f"Error: {e}" if not TR else f"Hata: {e}")
 
     def apply_filter(self):
         if not self.all_procs:
@@ -469,7 +533,7 @@ class ProcessManager(QMainWindow):
         filtered = []
         for p in self.all_procs:
             pid, name, cpu, mem_p, mem_mb, status, user, cmd = p
-            if user_f != "All Users" and user != user_f:
+            if self.user_filter.currentIndex() != 0 and user != user_f:
                 continue
             if search:
                 if search not in str(pid).lower() and search not in name.lower() and search not in user.lower() and search not in cmd.lower():
@@ -518,7 +582,7 @@ class ProcessManager(QMainWindow):
                     it.setData(Qt.ItemDataRole.UserRole, pid)
                 self.table.setItem(row, col_idx, it)
 
-        self.status.setText(f"Showing {len(filtered)} / {len(self.all_procs)} processes | Sort: {COLS[self.sort_col]} {'↓' if self.sort_desc else '↑'} | Auto-refresh {REFRESH_MS//1000}s")
+        self.status.setText(f"Showing {len(filtered)} / {len(self.all_procs)} processes | Sort: {COLS[self.sort_col]} {'↓' if self.sort_desc else '↑'} | Auto-refresh {REFRESH_MS//1000}s" if not TR else f"{len(filtered)} / {len(self.all_procs)} işlem | Sırala: {_(COLS[self.sort_col])} {'↓' if self.sort_desc else '↑'} | Otomatik yenileme {REFRESH_MS//1000}sn")
 
     def get_selected_pid(self):
         row = self.table.currentRow()
@@ -595,41 +659,44 @@ class ProcessManager(QMainWindow):
 
     def restart_service(self, pid, name, user):
         service = self.get_service_name(pid, name)
-        if QMessageBox.question(self, "Restart Service",
+        if QMessageBox.question(self, _("Restart Service"),
             f"Restart system service '{service}'?\n\n"
             f"PID: {pid} | User: {user} | Name: {name}\n\n"
-            f"This will run: sudo systemctl restart {service}") != QMessageBox.StandardButton.Yes:
+            f"This will run: sudo systemctl restart {service}" if not TR else
+            f"'{service}' sistem hizmeti yeniden başlatılsın mı?\n\n"
+            f"PID: {pid} | Kullanıcı: {user} | Ad: {name}\n\n"
+            f"Çalışacak: sudo systemctl restart {service}") != QMessageBox.StandardButton.Yes:
             return False
         try:
             result = subprocess.run(["pkexec", "systemctl", "restart", service],
                                   capture_output=True, text=True, timeout=30)
             if result.returncode == 0:
-                self.status.setText(f"Restarted service: {service}")
-                QMessageBox.information(self, "Success", f"Service '{service}' restarted successfully.")
+                self.status.setText(f"Restarted service: {service}" if not TR else f"Hizmet yeniden başlatıldı: {service}")
+                QMessageBox.information(self, _("Success"), f"Service '{service}' restarted successfully." if not TR else f"'{service}' hizmeti başarıyla yeniden başlatıldı.")
             else:
                 result2 = subprocess.run(["sudo", "systemctl", "restart", service],
                                        capture_output=True, text=True, timeout=30)
                 if result2.returncode == 0:
-                    self.status.setText(f"Restarted service: {service}")
-                    QMessageBox.information(self, "Success", f"Service '{service}' restarted successfully.")
+                    self.status.setText(f"Restarted service: {service}" if not TR else f"Hizmet yeniden başlatıldı: {service}")
+                    QMessageBox.information(self, _("Success"), f"Service '{service}' restarted successfully." if not TR else f"'{service}' hizmeti başarıyla yeniden başlatıldı.")
                 else:
                     raise Exception(f"systemctl restart failed: {result2.stderr}")
             return True
         except subprocess.TimeoutExpired:
-            QMessageBox.warning(self, "Timeout", "Service restart timed out.")
+            QMessageBox.warning(self, _("Timeout"), _("Service restart timed out."))
         except FileNotFoundError:
-            QMessageBox.warning(self, "Not Found", "systemctl not found. Not a systemd system?")
+            QMessageBox.warning(self, _("Not Found"), _("systemctl not found. Not a systemd system?"))
         except Exception as e:
-            QMessageBox.warning(self, "Error", f"Failed to restart service:\n{e}")
+            QMessageBox.warning(self, _("Error"), f"Failed to restart service:\n{e}" if not TR else f"Hizmet yeniden başlatılamadı:\n{e}")
         return False
 
     def kill_process(self):
         pid = self.get_selected_pid()
         if pid is None:
-            QMessageBox.information(self, "Select", "Select a process to end.")
+            QMessageBox.information(self, _("Select"), _("Select a process to end."))
             return
         if pid == 1 or pid == 0:
-            QMessageBox.warning(self, "Blocked", "Cannot kill PID 0/1.")
+            QMessageBox.warning(self, _("Blocked"), _("Cannot kill PID 0/1."))
             return
         name_item = self.table.item(self.table.currentRow(), 1)
         user_item = self.table.item(self.table.currentRow(), 6)
@@ -639,33 +706,33 @@ class ProcessManager(QMainWindow):
             self.restart_service(pid, name, user)
             self.refresh_processes()
             return
-        if QMessageBox.question(self, "End Task", f"End process {name} (PID {pid})?\nThis may cause data loss.") != QMessageBox.StandardButton.Yes:
+        if QMessageBox.question(self, _("End Task"), f"End process {name} (PID {pid})?\nThis may cause data loss." if not TR else f"{name} işlemi (PID {pid}) sonlandırılsın mı?\nVeri kaybına yol açabilir.") != QMessageBox.StandardButton.Yes:
             return
         try:
             p = psutil.Process(pid)
             p.terminate()
             p.wait(timeout=3)
-            self.status.setText(f"Terminated PID {pid}")
+            self.status.setText(f"Terminated PID {pid}" if not TR else f"PID {pid} sonlandırıldı")
         except psutil.NoSuchProcess:
-            QMessageBox.information(self, "Gone", "Process already exited.")
+            QMessageBox.information(self, _("Gone"), _("Process already exited."))
         except psutil.AccessDenied:
-            QMessageBox.warning(self, "Access Denied", f"Cannot terminate PID {pid}. Try running with sudo:\n\nsudo python3 main.py")
+            QMessageBox.warning(self, _("Access Denied"), f"Cannot terminate PID {pid}. Try running with sudo:\n\nsudo ali-ltask" if not TR else f"PID {pid} sonlandırılamadı. sudo ile dene:\n\nsudo ali-ltask")
         except psutil.TimeoutExpired:
             try:
                 psutil.Process(pid).kill()
-                self.status.setText(f"Killed PID {pid}")
+                self.status.setText(f"Killed PID {pid}" if not TR else f"PID {pid} öldürüldü")
             except Exception as e:
-                QMessageBox.warning(self, "Error", str(e))
+                QMessageBox.warning(self, _("Error"), str(e))
         except Exception as e:
-            QMessageBox.warning(self, "Error", str(e))
+            QMessageBox.warning(self, _("Error"), str(e))
         self.refresh_processes()
 
     def kill_tree(self):
         pid = self.get_selected_pid()
         if pid is None:
-            QMessageBox.information(self, "Select", "Select a process.")
+            QMessageBox.information(self, _("Select"), _("Select a process."))
             return
-        if QMessageBox.question(self, "End Process Tree", f"Kill process tree for PID {pid} and all children?") != QMessageBox.StandardButton.Yes:
+        if QMessageBox.question(self, _("End Process Tree"), f"Kill process tree for PID {pid} and all children?" if not TR else f"PID {pid} ve tüm alt işlemleri öldürülsün mü?") != QMessageBox.StandardButton.Yes:
             return
         try:
             parent = psutil.Process(pid)
@@ -682,9 +749,9 @@ class ProcessManager(QMainWindow):
                     p.kill()
                 except Exception:
                     pass
-            self.status.setText(f"Killed tree PID {pid}")
+            self.status.setText(f"Killed tree PID {pid}" if not TR else f"PID {pid} ağacı öldürüldü")
         except Exception as e:
-            QMessageBox.warning(self, "Error", str(e))
+            QMessageBox.warning(self, _("Error"), str(e))
         self.refresh_processes()
 
     def show_context_menu(self, pos):
@@ -701,20 +768,20 @@ class ProcessManager(QMainWindow):
         is_system = self.is_system_process(pid, name, user)
 
         menu = QMenu(self)
-        act_details = menu.addAction(f"Details - {name} ({pid})")
-        act_copy = menu.addAction("Copy PID / Command")
+        act_details = menu.addAction(f"Details - {name} ({pid})" if not TR else f"Ayrıntılar - {name} ({pid})")
+        act_copy = menu.addAction(_("Copy PID / Command"))
         menu.addSeparator()
         if is_system:
-            act_restart = menu.addAction("Restart Service")
+            act_restart = menu.addAction(_("Restart Service"))
             act_end = None
         else:
-            act_end = menu.addAction("End Task")
+            act_end = menu.addAction(_("End Task"))
             act_restart = None
-        act_tree = menu.addAction("End Process Tree")
+        act_tree = menu.addAction(_("End Process Tree"))
         menu.addSeparator()
-        act_refresh = menu.addAction("Refresh")
-        act_suspend = menu.addAction("Suspend")
-        act_resume = menu.addAction("Resume")
+        act_refresh = menu.addAction(_("Refresh"))
+        act_suspend = menu.addAction(_("Suspend"))
+        act_resume = menu.addAction(_("Resume"))
 
         action = menu.exec(self.table.viewport().mapToGlobal(pos))
         if action == act_details:
@@ -723,7 +790,7 @@ class ProcessManager(QMainWindow):
             cmd_item = self.table.item(self.table.currentRow(), 7)
             cmd = cmd_item.text() if cmd_item else name
             QApplication.clipboard().setText(f"{pid} - {cmd}")
-            self.status.setText(f"Copied PID {pid} to clipboard")
+            self.status.setText(f"Copied PID {pid} to clipboard" if not TR else f"PID {pid} panoya kopyalandı")
         elif action == act_end:
             self.kill_process()
         elif action == act_restart:
@@ -744,11 +811,11 @@ class ProcessManager(QMainWindow):
             return
         try:
             psutil.Process(pid).suspend()
-            self.status.setText(f"Suspended PID {pid}")
+            self.status.setText(f"Suspended PID {pid}" if not TR else f"PID {pid} askıya alındı")
         except psutil.AccessDenied:
-            QMessageBox.warning(self, "Access Denied", f"Cannot suspend PID {pid}. Try sudo.")
+            QMessageBox.warning(self, _("Access Denied"), f"Cannot suspend PID {pid}. Try sudo." if not TR else f"PID {pid} askıya alınamadı. sudo dene.")
         except Exception as e:
-            QMessageBox.warning(self, "Error", str(e))
+            QMessageBox.warning(self, _("Error"), str(e))
         self.refresh_processes()
 
     def resume_process(self):
@@ -757,11 +824,11 @@ class ProcessManager(QMainWindow):
             return
         try:
             psutil.Process(pid).resume()
-            self.status.setText(f"Resumed PID {pid}")
+            self.status.setText(f"Resumed PID {pid}" if not TR else f"PID {pid} sürdürüldü")
         except psutil.AccessDenied:
-            QMessageBox.warning(self, "Access Denied", f"Cannot resume PID {pid}. Try sudo.")
+            QMessageBox.warning(self, _("Access Denied"), f"Cannot resume PID {pid}. Try sudo." if not TR else f"PID {pid} sürdürülemedi. sudo dene.")
         except Exception as e:
-            QMessageBox.warning(self, "Error", str(e))
+            QMessageBox.warning(self, _("Error"), str(e))
         self.refresh_processes()
 
     def show_details(self):
@@ -774,10 +841,10 @@ class ProcessManager(QMainWindow):
         try:
             p = psutil.Process(pid)
             with p.oneshot():
-                info = f"PID: {p.pid}\nName: {p.name()}\nStatus: {p.status()}\nUser: {p.username()}\nCPU: {p.cpu_percent():.1f}%\nMemory: {p.memory_percent():.1f}% ({format_mb(p.memory_info().rss)} MB)\nThreads: {p.num_threads()}\nCreate time: {datetime.datetime.fromtimestamp(p.create_time())}\n\nCmdline:\n{' '.join(p.cmdline()) or p.name()}\n\nExe:\n{p.exe()}\n\nCWD:\n{p.cwd()}"
-            QMessageBox.information(self, f"Details - PID {pid}", info)
+                info = f"PID: {p.pid}\nName: {p.name()}\nStatus: {p.status()}\nUser: {p.username()}\nCPU: {p.cpu_percent():.1f}%\nMemory: {p.memory_percent():.1f}% ({format_mb(p.memory_info().rss)} MB)\nThreads: {p.num_threads()}\nCreate time: {datetime.datetime.fromtimestamp(p.create_time())}\n\nCmdline:\n{' '.join(p.cmdline()) or p.name()}\n\nExe:\n{p.exe()}\n\nCWD:\n{p.cwd()}" if not TR else f"PID: {p.pid}\nAd: {p.name()}\nDurum: {p.status()}\nKullanıcı: {p.username()}\nCPU: %{p.cpu_percent():.1f}\nBellek: %{p.memory_percent():.1f} ({format_mb(p.memory_info().rss)} MB)\nİş parçacığı: {p.num_threads()}\nOluşturulma: {datetime.datetime.fromtimestamp(p.create_time())}\n\nKomut satırı:\n{' '.join(p.cmdline()) or p.name()}\n\nExe:\n{p.exe()}\n\nCWD:\n{p.cwd()}"
+            QMessageBox.information(self, f"Details - PID {pid}" if not TR else f"Ayrıntılar - PID {pid}", info)
         except Exception as e:
-            QMessageBox.warning(self, "Error", str(e))
+            QMessageBox.warning(self, _("Error"), str(e))
 
 def main():
     app = QApplication(sys.argv)

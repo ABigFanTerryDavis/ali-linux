@@ -391,8 +391,29 @@ announce_once() {
     write_status
 }
 
+welcome_back() {
+    # `terrydavis --welcome` (desktop autostart): one summary ping per boot.
+    [ -f /run/terrydavis-welcomed ] && return 0
+    touch /run/terrydavis-welcomed 2>/dev/null || true
+    sleep 20
+    upd=$(cat /run/ali-updates 2>/dev/null)
+    case "$upd" in ''|*[!0-9]*) upd="?" ;; esac
+    blocks=0
+    if command -v ufw >/dev/null 2>&1; then
+        blocks=$(ufw status 2>/dev/null | grep -c 'DENY.*sentinel')
+    fi
+    last="unknown"
+    [ -f /var/lib/odysseus/last-shutdown ] && last=$(cat /var/lib/odysseus/last-shutdown 2>/dev/null)
+    arch=0
+    [ -f /var/log/sentinel-archive.log ] && arch=$(grep -c '^\[' /var/log/sentinel-archive.log 2>/dev/null)
+    ping "ALI'ye hoş geldin - welcome back" \
+        "updates: $upd | blocked attackers standing: $blocks | archived events: $arch | last shutdown: $last"
+    log "welcomed back (updates=$upd blocks=$blocks archived=$arch)"
+}
+
 case "${1:-}" in
     --once) announce_once ;;
+    --welcome) welcome_back ;;
     *)  log "starting (QoL: janitor + crier + usb + game + wifi + night + sorter + coffee + crash + battery)"
         write_status
         n=0

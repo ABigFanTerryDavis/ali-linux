@@ -1,0 +1,7 @@
+[Configuration]
+FontName=Monospace 11
+ColorForeground=#e8eaf2
+ColorBackground=#1a1d29
+ColorPalette=#1a1d29;#f2686c;#8fd16f;#f2c66d;#7f9cf5;#c792ea;#6fd1d1;#e8eaf2;#5a6078;#f2686c;#8fd16f;#f2c66d;#7f9cf5;#c792ea;#6fd1d1;#ffffff
+ScrollingLines=10000
+MiscShowUnsafePasteDialog=TRUE

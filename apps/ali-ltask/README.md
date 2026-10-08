@@ -12,4 +12,4 @@ upstream; ALI owns the packaging (`.deb`, launcher, deps, menu entry).
   the name, end them if you dare (Sentinel's watchdog will just restart
   Sentinel, and Odysseus will note your violence in its log).
 
-Not yet Turkish (vendored English GUI) - pass planned later.
+Turkish since 1.3.1 (`ALI_LANG=tr` / second launcher).

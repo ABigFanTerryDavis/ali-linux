@@ -6,7 +6,7 @@ rm -rf build
 mkdir -p build/DEBIAN build/usr/bin build/usr/share/ali-ltask build/usr/share/applications
 cp ltaskmanager.py build/usr/share/ali-ltask/
 cp ali-ltask build/usr/bin/
-cp ali-ltask.desktop build/usr/share/applications/
+cp ali-ltask.desktop ali-ltask-tr.desktop build/usr/share/applications/
 cat > build/DEBIAN/control <<EOF
 Package: ali-ltask
 Version: $VER

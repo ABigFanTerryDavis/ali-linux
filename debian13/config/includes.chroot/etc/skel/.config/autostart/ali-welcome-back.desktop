@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=ALI Welcome Back
+Comment=One login summary per boot
+Exec=terrydavis --welcome
+Icon=dialog-information
+Terminal=false
+Categories=System;
+X-GNOME-Autostart-enabled=true

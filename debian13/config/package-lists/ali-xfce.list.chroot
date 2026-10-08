@@ -30,3 +30,10 @@ python3-pyqtgraph
 xfce4-docklike-plugin
 openssl
 plymouth
+conky-std
+cups
+system-config-printer
+bluez
+blueman
+libreoffice
+evince
