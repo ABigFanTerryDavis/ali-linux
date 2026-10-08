@@ -14,6 +14,7 @@
 #      alarm (1m). Game mode and Performance boot entry always win.
 #  11. Wallpaper rotation: hourly cycle through OUR wallpapers, never
 #      stomping a custom one (1h). Crier also relays Oracle verdicts.
+#  12. Shrine keeper: 10 idle minutes -> ali-shrine takes the screen.
 set -u
 STATE=/var/lib/terrydavis
 STATUS=/run/terrydavis-status
@@ -125,6 +126,18 @@ set_gov() {
 }
 
 game_check() {
+    forced=$(cat "$STATE/gamemode.force" 2>/dev/null)
+    if [ "$forced" = "on" ] || [ "$forced" = "off" ]; then
+        want="$forced"
+        if [ "$(cat $STATE/gamemode 2>/dev/null)" != "$want" ]; then
+            echo "$want" > "$STATE/gamemode"
+            date +%s > "$STATE/gamemode.since"
+            if [ "$want" = "on" ]; then set_gov performance; else set_gov normal; fi
+            log "game mode FORCED $want by operator"
+            write_status
+        fi
+        return 0
+    fi
     if gaming_now; then
         if [ "$(cat $STATE/gamemode 2>/dev/null)" != "on" ]; then
             echo on > "$STATE/gamemode"
@@ -187,6 +200,20 @@ crier() {
         fi
     fi
     write_status
+}
+
+idle_check() {
+    # 10 idle minutes -> the shrine takes the screen (quits itself on input)
+    if ! command -v xprintidle >/dev/null 2>&1; then return 0; fi
+    if ! command -v ali-shrine >/dev/null 2>&1; then return 0; fi
+    if ! id ali >/dev/null 2>&1; then return 0; fi
+    if pgrep -x ali-shrine >/dev/null 2>&1; then return 0; fi
+    idle=$(sudo -u ali DISPLAY=:0 xprintidle 2>/dev/null)
+    case "$idle" in ''|*[!0-9]*) return 0 ;; esac
+    if [ "$idle" -ge 600000 ]; then
+        sudo -u ali DISPLAY=:0 ali-shrine >/dev/null 2>&1 &
+        log "shrine shown after ${idle}ms idle"
+    fi
 }
 
 usb_announce() {
@@ -467,6 +494,7 @@ case "${1:-}" in
         w=0
         while true; do
             usb_announce
+            idle_check
             game_check
             sorter
             w=$((w + 1))

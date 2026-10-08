@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<actions>
+  <action>
+    <icon>utilities-terminal</icon>
+    <name>Open Terminal Here</name>
+    <submenu></submenu>
+    <unique-id>ali-terminal-here</unique-id>
+    <command>xfce4-terminal --working-directory=%f</command>
+    <description>Open ALI Terminal in this folder</description>
+    <patterns>*</patterns>
+    <directories/>
+  </action>
+  <action>
+    <icon>dialog-information</icon>
+    <name>Checksum (SHA-256)</name>
+    <submenu></submenu>
+    <unique-id>ali-checksum</unique-id>
+    <command>x-terminal-emulator -e 'sha256sum %F; echo; read -n1 -p "press any key"'</command>
+    <description>Show SHA-256 of selected files</description>
+    <patterns>*</patterns>
+    <other-files/>
+  </action>
+  <action>
+    <icon>preferences-desktop-wallpaper</icon>
+    <name>Set as Wallpaper</name>
+    <submenu></submenu>
+    <unique-id>ali-wallpaper</unique-id>
+    <command>xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/last-image -s %f</command>
+    <description>Use this image as desktop background</description>
+    <patterns>*.jpg;*.jpeg;*.png;*.webp;*.svg</patterns>
+    <image-files/>
+  </action>
+  <action>
+    <icon>dialog-password</icon>
+    <name>Lock in Vault</name>
+    <submenu></submenu>
+    <unique-id>ali-vault-lock</unique-id>
+    <command>x-terminal-emulator -e 'ali-vault lock %f; echo; read -n1 -p "press any key"'</command>
+    <description>Encrypt with Terry's Dice vault</description>
+    <patterns>*</patterns>
+    <other-files/>
+  </action>
+</actions>

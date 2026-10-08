@@ -1,4 +1,4 @@
-# terrydavis 1.3.3 - ALI QoL daemon (11 duties)
+# terrydavis 1.3.6 - ALI QoL daemon (12 duties)
 
 Named for Terry Davis: software with soul. Quiet background comfort:
 
@@ -31,6 +31,8 @@ Named for Terry Davis: software with soul. Quiet background comfort:
 11. **Wallpaper rotation** (hourly) - cycles `/usr/share/backgrounds/ali/`,
     skipping the moment the user picks their own. The crier also relays
     fresh Oracle `[verdict]` lines as desktop pings.
+12. **Shrine keeper** (every 15s) - 10 idle minutes summons `ali-shrine`
+    (fullscreen oracle on black, wakes on input). Needs `xprintidle`.
 
 Needs: `x11-utils` (xprop), `redshift`, `network-manager` (nmcli).
 

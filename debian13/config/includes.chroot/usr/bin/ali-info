@@ -1,16 +1,44 @@
 #!/bin/sh
-# ali-info - system info splash for ALI Linux
-cat /etc/os-release 2>/dev/null | head -n 4
-echo "---"
-hostname; uptime
-echo "---"
-if command -v fastfetch >/dev/null 2>&1; then
-  fastfetch
-elif command -v neofetch >/dev/null 2>&1; then
-  neofetch
-else
-  uname -a
+# ali-info v2 - ALI system report (for debugging and showing off).
+# usage: ali-info [--share]  (--share also drops ~/ali-info.txt)
+# Turkish: ALI_LANG=tr
+set -u
+
+TR() {
+    if [ "${ALI_LANG:-}" = "tr" ] || [ "${ALI_LANG:-}" = "TR" ]; then printf '%s' "$2"; else printf '%s' "$1"; fi
+}
+
+L() { printf '%s: %s\n' "$1" "$2"; }
+
+echo "== $(TR 'ALI Linux report' 'ALI Linux raporu') ($(date '+%F %T')) =="
+L "$(TR 'OS' 'Sistem')" "$(grep -m1 PRETTY_NAME /etc/os-release 2>/dev/null | cut -d'"' -f2)"
+L "$(TR 'Kernel' 'Çekirdek')" "$(uname -r)"
+L "$(TR 'Desktop' 'Masaüstü')" "${XDG_CURRENT_DESKTOP:-XFCE} ($(echo "${XDG_SESSION_TYPE:-x11}"))"
+L "$(TR 'Uptime' 'Süre')" "$(uptime -p 2>/dev/null || uptime 2>/dev/null || echo ?)"
+echo "--- $(TR 'hardware' 'donanım') ---"
+L CPU "$(grep -m1 'model name' /proc/cpuinfo 2>/dev/null | cut -d: -f2 | xargs)"
+L "$(TR 'Memory' 'Bellek')" "$(free -h 2>/dev/null | awk '/^Mem:/ {print $3, $2}' | { read -r u t || true; printf '%s / %s' "${u:-?}" "${t:-?}"; })"
+set -- $(df -h / 2>/dev/null | awk 'NR==2 {print $3, $2, $5}') 2>/dev/null
+L "$(TR 'Disk /' 'Disk /')" "${1:-?} / ${2:-?} (${3:-?})"
+GPU="$(lspci 2>/dev/null | grep -im1 'vga\|3d' | cut -d: -f3 | xargs)"
+L GPU "${GPU:-?}"
+echo "--- $(TR 'ALI layer' 'ALI katmanı') ---"
+for d in odysseus sentinel terrydavis templeos oracle; do
+    if pgrep -x "$d" >/dev/null 2>&1; then st="running"; else st="DOWN"; fi
+    L "$d" "$st"
+done
+DICEID=$(terry-dice id 2>/dev/null | cut -c1-12)
+L "$(TR 'Dice ID' 'Zar Kimliği')" "${DICEID:-?}"
+L "$(TR 'Updates pending' 'Bekleyen güncelleme')" "$(cat /run/ali-updates 2>/dev/null || echo ?)"
+L "$(TR 'Attackers blocked' 'Engellenen saldırgan')" "$(sudo -n ufw status 2>/dev/null | grep -c 'DENY.*sentinel' || true)"
+SEA=$(grep -a '^sea=' /run/odysseus-status 2>/dev/null | cut -d= -f2-)
+L "$(TR 'Sea' 'Deniz')" "${SEA:-?}"
+echo "--- $(TR 'graphics' 'grafik') ---"
+RES=$(xrandr 2>/dev/null | grep -am1 ' connected' | grep -aoE '[0-9]+x[0-9]+' | head -n1)
+L "$(TR 'Resolution' 'Çözünürlük')" "${RES:-?}"
+L "$(TR 'Theme' 'Tema')" "Greybird / elementary-xfce / ALI-dark apps"
+
+if [ "${1:-}" = "--share" ]; then
+    "$0" > "$HOME/ali-info.txt" 2>/dev/null
+    echo "$(TR 'saved to ~/ali-info.txt' '~/ali-info.txt dosyasına kaydedildi')"
 fi
-echo "---"
-df -h / | tail -n 1
-free -h | head -n 2

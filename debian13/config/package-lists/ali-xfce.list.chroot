@@ -33,6 +33,7 @@ plymouth
 zram-tools
 xfconf
 sox
+xprintidle
 conky-std
 cups
 system-config-printer

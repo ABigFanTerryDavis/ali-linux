@@ -23,10 +23,11 @@ static void launch_async(const char *cmd) {
 /* Turkish pass (1.2.5): --tr flag or ALI_LANG=tr. Proper nouns stay. */
 static int LANG_TR = 0;
 static const char *T(const char *en, const char *tr) { return LANG_TR ? tr : en; }
+static char *run_capture(const char *cmd);
 
 static void read_os_pretty(char *out, size_t n) {
     FILE *f = fopen("/etc/os-release", "r");
-    snprintf(out, n, "ALI Linux 1.3.5");
+    snprintf(out, n, "ALI Linux 1.3.6");
     if (!f) return;
     char line[256];
     while (fgets(line, sizeof(line), f)) {
@@ -54,6 +55,27 @@ static void on_sysinfo_clicked(GtkButton *b, gpointer u) {
     launch_async("x-terminal-emulator -e 'fastfetch 2>/dev/null || neofetch 2>/dev/null || (cat /etc/os-release; uname -a); echo; read -n1 -p \"press any key\"'");
 }
 
+static void on_updates_refresh(GtkButton *b, gpointer u) {
+    (void)b;
+    char *n = run_capture("cat /run/ali-updates 2>/dev/null");
+    char *day = run_capture("cat /run/odysseus-apt-day 2>/dev/null");
+    char buf[256];
+    snprintf(buf, sizeof(buf), "%s: %s\n%s: %s",
+        T("Pending updates", "Bekleyen güncellemeler"), (n && *n) ? n : "?",
+        T("Last checked", "Son denetim"), (day && *day) ? day : T("never", "hiç"));
+    gtk_label_set_text(GTK_LABEL(u), buf);
+}
+
+static void on_updates_list(GtkButton *b, gpointer u) {
+    (void)b; (void)u;
+    launch_async("x-terminal-emulator -e 'apt list --upgradable 2>/dev/null | head -30; echo; read -n1 -p \"press any key\"'");
+}
+
+static void on_upgrade_clicked(GtkButton *b, gpointer u) {
+    (void)b; (void)u;
+    launch_async("x-terminal-emulator -e 'sudo apt update && sudo apt full-upgrade; echo DONE - press Enter; read x'");
+}
+
 static void on_wallpapers_clicked(GtkButton *b, gpointer u) {
     (void)b; (void)u;
     launch_async("thunar /usr/share/backgrounds/ali 2>/dev/null || exo-open /usr/share/backgrounds/ali");
@@ -72,6 +94,41 @@ static void on_files_clicked(GtkButton *b, gpointer u) {
 static void on_browser_clicked(GtkButton *b, gpointer u) {
     (void)b; (void)u;
     launch_async("firefox-esr 2>/dev/null || firefox 2>/dev/null || exo-open https://github.com/");
+}
+
+static void on_game_clicked(GtkButton *b, gpointer u) {
+    (void)b;
+    /* cycle: auto -> force on -> force off -> auto */
+    char *cur = run_capture("cat /var/lib/terrydavis/gamemode.force 2>/dev/null");
+    const char *next = "on";
+    const char *msg = NULL;
+    if (!cur || !*cur) { next = "on"; msg = T("Game mode: forced ON", "Oyun modu: zorla AÇIK"); }
+    else if (strcmp(cur, "on") == 0) { next = "off"; msg = T("Game mode: forced OFF", "Oyun modu: zorla KAPALI"); }
+    else { next = ""; msg = T("Game mode: auto", "Oyun modu: otomatik"); }
+    char cmd[256];
+    if (*next)
+        snprintf(cmd, sizeof(cmd), "echo %s | sudo tee /var/lib/terrydavis/gamemode.force >/dev/null", next);
+    else
+        snprintf(cmd, sizeof(cmd), "sudo rm -f /var/lib/terrydavis/gamemode.force");
+    int rc = system(cmd);
+    (void)rc;
+    GtkWidget *d = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL,
+        GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE, "%s", msg);
+    gtk_dialog_run(GTK_DIALOG(d));
+    gtk_widget_destroy(d);
+    gtk_label_set_text(GTK_LABEL(u), game_status_text());
+}
+
+static char game_buf[256];
+static const char *game_status_text(void) {
+    char *mode = run_capture("cat /var/lib/terrydavis/gamemode 2>/dev/null");
+    char *force = run_capture("cat /var/lib/terrydavis/gamemode.force 2>/dev/null");
+    snprintf(game_buf, sizeof(game_buf), "%s: %s%s%s",
+        T("Game mode", "Oyun modu"),
+        (mode && strcmp(mode, "on") == 0) ? T("ON", "AÇIK") : T("off", "kapalı"),
+        (force && *force) ? " (" : "",
+        (force && *force) ? (strcmp(force, "on") == 0 ? T("forced)", "zorla)") : T("held off)", "tutuluyor)")) : "");
+    return game_buf;
 }
 
 static void on_install_clicked(GtkButton *b, gpointer u) {
@@ -372,6 +429,15 @@ int main(int argc, char **argv) {
         GtkWidget *b3 = gtk_button_new_with_label(T("Open Browser", "Tarayıcıyı Aç"));
         g_signal_connect(b3, "clicked", G_CALLBACK(on_browser_clicked), NULL);
         gtk_box_pack_start(GTK_BOX(box), b3, FALSE, FALSE, 0);
+        /* Game corner: status + auto/on/off cycle */
+        {
+            GtkWidget *gl = gtk_label_new(NULL);
+            gtk_label_set_text(GTK_LABEL(gl), game_status_text());
+            gtk_box_pack_start(GTK_BOX(box), gl, FALSE, FALSE, 8);
+            GtkWidget *gb = gtk_button_new_with_label(T("Game Mode: Auto / On / Off", "Oyun Modu: Otomatik / Açık / Kapalı"));
+            g_signal_connect(gb, "clicked", G_CALLBACK(on_game_clicked), gl);
+            gtk_box_pack_start(GTK_BOX(box), gb, FALSE, FALSE, 0);
+        }
         stack_page(stack, box, "apps", T("Apps", "Uygulamalar"));
     }
 
@@ -387,6 +453,29 @@ int main(int argc, char **argv) {
         g_signal_connect(b, "clicked", G_CALLBACK(on_install_clicked), NULL);
         gtk_box_pack_start(GTK_BOX(box), b, FALSE, FALSE, 0);
         stack_page(stack, box, "install", T("Install", "Kurulum"));
+    }
+
+    /* --- Updates tab (1.3.6) --- */
+    {
+        GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
+        gtk_container_set_border_width(GTK_CONTAINER(box), 16);
+        GtkWidget *l = gtk_label_new("?");
+        gtk_label_set_selectable(GTK_LABEL(l), TRUE);
+        on_updates_refresh(NULL, l);
+        gtk_box_pack_start(GTK_BOX(box), l, FALSE, FALSE, 0);
+        GtkWidget *b1 = gtk_button_new_with_label(T("Check Now", "Şimdi Denetle"));
+        g_signal_connect(b1, "clicked", G_CALLBACK(on_update_clicked), NULL);
+        gtk_box_pack_start(GTK_BOX(box), b1, FALSE, FALSE, 0);
+        GtkWidget *b2 = gtk_button_new_with_label(T("Show List", "Listeyi Göster"));
+        g_signal_connect(b2, "clicked", G_CALLBACK(on_updates_list), NULL);
+        gtk_box_pack_start(GTK_BOX(box), b2, FALSE, FALSE, 0);
+        GtkWidget *b3 = gtk_button_new_with_label(T("Upgrade Now", "Şimdi Yükselt"));
+        g_signal_connect(b3, "clicked", G_CALLBACK(on_upgrade_clicked), NULL);
+        gtk_box_pack_start(GTK_BOX(box), b3, FALSE, FALSE, 0);
+        GtkWidget *b4 = gtk_button_new_with_label(T("Refresh Count", "Sayıyı Yenile"));
+        g_signal_connect(b4, "clicked", G_CALLBACK(on_updates_refresh), l);
+        gtk_box_pack_start(GTK_BOX(box), b4, FALSE, FALSE, 0);
+        stack_page(stack, box, "updates", T("Updates", "Güncellemeler"));
     }
 
     /* --- Status tab --- */
@@ -466,7 +555,7 @@ int main(int argc, char **argv) {
         GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
         gtk_container_set_border_width(GTK_CONTAINER(box), 16);
         char about[512];
-        snprintf(about, sizeof(about), "ALI Linux 1.3.5\nXFCE - amd64.\n\nALI Center 1.3.5 - C + GTK3 (+ Sentinel Security tab).");
+        snprintf(about, sizeof(about), "ALI Linux 1.3.6\nXFCE - amd64.\n\nALI Center 1.3.6 - C + GTK3 (+ Sentinel Security tab).");
         char *vs = read_file_all("/run/templeos-oracle");
         if (vs) {
             char *vl = strstr(vs, "verse=");
