@@ -1,4 +1,4 @@
-# ALI Linux 1.4.2 - Debian trixie based, XFCE, amd64
+# ALI Linux 1.4.3 - Debian trixie based, XFCE, amd64
 
 Learning project. Visible rebrand only - underneath 100% Debian.
 
@@ -43,6 +43,7 @@ Learning project. Visible rebrand only - underneath 100% Debian.
 - 1.4.0 - (staged, NO PUSH until 1.4.9) Official-ness: Flatpak+Flathub, 20 man pages, LUKS splash prompt, CLI Turkish mop-up, phone link
 - 1.4.1 - (staged, NO PUSH until 1.4.9) Comfort: Night Light switch, screenshot key, disk tool
 - 1.4.2 - (staged, NO PUSH until 1.4.9) Soul pack: lock screen, backup nanny, ali-game+MangoHud, hymn alarm, Fenn the ferret
+- 1.4.3 - (staged, NO PUSH until 1.4.9) THE dice logo: canonical logo.jpg wired into welcome page + wizard banner
 
 ## Push checklist (1.3.9 push - THIS IS IT)
 ```powershell
