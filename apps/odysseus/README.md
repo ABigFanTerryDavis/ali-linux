@@ -1,4 +1,4 @@
-# Odysseus v2 - first task to start, last to end
+# Odysseus v4 - first task to start, last to end
 
 Duties:
 1. **Boot-mode enforcer** - reads `/proc/cmdline`; `mitigations=off`
@@ -9,6 +9,13 @@ Duties:
 3. **safe-rm guard** (`ali-safe-rm.sh`) - interactive-shell accident guard
    refusing `rm -rf /`-style wipes. NOT a security boundary
    (`command rm` bypasses by design).
+4. **Boot/shutdown timing** - `boot_time_s` (kernel -> first task) and
+   last shutdown + session length in `/run/odysseus-status` (Center Status tab).
+5. **Sentinel memory** - shutdown archives `/run/ali-security` (tmpfs!)
+   to `/var/log/sentinel-archive.log` and saves firewall blocks; boot
+   re-applies blocks and reports the away period to the fresh feed.
+6. **Sentinel watchdog** - restarts Sentinel if it dies, ALERTs the
+   security feed if restart fails.
 
 A systemd service ordered before `sysinit.target` (so it starts first)
 and before `shutdown.target` with no default deps (so it stops last).
