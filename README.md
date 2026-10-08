@@ -1,4 +1,4 @@
-# ALI Linux 1.2.9 - Debian trixie based, XFCE, amd64
+# ALI Linux 1.3.0 - Debian trixie based, XFCE, amd64
 
 Learning project. Visible rebrand only - underneath 100% Debian.
 
@@ -30,6 +30,7 @@ Learning project. Visible rebrand only - underneath 100% Debian.
 - 1.2.7 - (staged, PUSHED in 1.2.8) ALI look: mac-style dock bar (docklike), clean desktop, traffic-light windows, ALI menu logo
 - 1.2.8 - PUSHED: Odysseus v5 network navigator, Pardus REMOVED, updater refresh
 - 1.2.9 - (staged, NO PUSH until 1.3.9) Terry's Dice security base: dice rolls, ali-passgen, ali-vault (AES-256, Sentinel ALERTs)
+- 1.3.0 - (staged, NO PUSH until 1.3.9) Boot identity (Plymouth splash + GRUB theme), Welcome wizard, Dice in Center, Battery brain
 
 ## Push checklist (1.3.9 push - DO NOT PUSH BEFORE 1.3.9)
 ```powershell

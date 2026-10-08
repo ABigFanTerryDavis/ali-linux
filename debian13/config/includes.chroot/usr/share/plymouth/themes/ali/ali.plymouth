@@ -1,0 +1,8 @@
+[ali]
+Name=ALI
+Description=ALI Linux boot splash
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/ali
+ScriptFile=/usr/share/plymouth/themes/ali/ali.script

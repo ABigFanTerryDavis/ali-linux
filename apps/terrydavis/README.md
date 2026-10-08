@@ -1,4 +1,4 @@
-# terrydavis 1.2.5 - ALI QoL daemon (9 duties)
+# terrydavis 1.3.0 - ALI QoL daemon (10 duties)
 
 Named for Terry Davis: software with soul. Quiet background comfort:
 
@@ -25,6 +25,9 @@ Named for Terry Davis: software with soul. Quiet background comfort:
    media players are active (systemd inhibitor, released after).
 9. **Crash catcher** (hourly) - fresh coredumps / /var/crash entries
    become one visible ping each (`coredumpctl list` for details).
+10. **Battery brain** (every 1m) - powersave governor while discharging,
+    restored on AC, urgent ping at 15% (once per discharge). Game mode
+    and Performance boot entry always win.
 
 Needs: `x11-utils` (xprop), `redshift`, `network-manager` (nmcli).
 

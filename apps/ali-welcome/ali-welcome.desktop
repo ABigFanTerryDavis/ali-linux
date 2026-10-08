@@ -2,9 +2,9 @@
 Version=1.0
 Type=Application
 Name=ALI Welcome
-Comment=First-run wizard: WiFi, updates, tour
+Comment=First-run wizard (TR/EN)
 Exec=ali-welcome
 Icon=dialog-information
 Terminal=false
-Categories=System;
-X-GNOME-Autostart-enabled=true
+Categories=X-XFCE-Settings;System;Settings;
+Keywords=ALI;Welcome;Setup;Wizard;

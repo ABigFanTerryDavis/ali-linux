@@ -49,10 +49,16 @@ jobs:
           cd apps/ali-ltask
           sh ./build-deb.sh
 
+      - name: Build ali-welcome
+        run: |
+          cd apps/ali-welcome
+          make
+          sh ./build-deb.sh
+
       - name: Stage packages
         run: |
           mkdir -p dist-apps
-          cp apps/ali-center/*.deb apps/ali-notepad/*.deb apps/ali-hymns/*.deb apps/ali-ltask/*.deb dist-apps/
+          cp apps/ali-center/*.deb apps/ali-notepad/*.deb apps/ali-hymns/*.deb apps/ali-ltask/*.deb apps/ali-welcome/*.deb dist-apps/
           ls -lh dist-apps/
 
       - name: Upload app packages

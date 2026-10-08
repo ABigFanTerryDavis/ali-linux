@@ -26,7 +26,7 @@ static const char *T(const char *en, const char *tr) { return LANG_TR ? tr : en;
 
 static void read_os_pretty(char *out, size_t n) {
     FILE *f = fopen("/etc/os-release", "r");
-    snprintf(out, n, "ALI Linux 1.2.9");
+    snprintf(out, n, "ALI Linux 1.3.0");
     if (!f) return;
     char line[256];
     while (fgets(line, sizeof(line), f)) {
@@ -185,6 +185,48 @@ static void on_scan_clicked(GtkButton *b, gpointer u) {
     launch_async("x-terminal-emulator -e 'sudo sentinel --once; echo; echo --- feed ---; tail -n 10 /run/ali-security; echo; read -n1 -p \"press any key\"'");
 }
 
+/* --- Terry's Dice in the Security tab (1.3.0) --- */
+static char *run_capture(const char *cmd) {
+    FILE *p = popen(cmd, "r");
+    if (!p) return NULL;
+    static char buf[256];
+    size_t n = fread(buf, 1, sizeof(buf) - 1, p);
+    pclose(p);
+    buf[n] = '\0';
+    char *nl = strchr(buf, '\n');
+    if (nl) *nl = '\0';
+    return buf[0] ? buf : NULL;
+}
+
+static void on_passgen_clicked(GtkButton *b, gpointer u) {
+    (void)b; (void)u;
+    char *pw = run_capture("ali-passgen 2>/dev/null");
+    GtkWidget *d = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL,
+        GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE,
+        "%s\n%s", T("Fresh password (96-bit, from Terry's Dice):",
+                     "Taze parola (96-bit, Terry's Dice'tan):"),
+        pw ? pw : T("(terry-dice not ready)", "(terry-dice hazır değil)"));
+    GtkWidget *lbl = gtk_message_dialog_get_message_area(GTK_MESSAGE_DIALOG(d));
+    for (GList *c = gtk_container_get_children(GTK_CONTAINER(lbl)); c; c = c->next)
+        if (GTK_IS_LABEL(c->data)) gtk_label_set_selectable(GTK_LABEL(c->data), TRUE);
+    gtk_dialog_run(GTK_DIALOG(d));
+    gtk_widget_destroy(d);
+}
+
+static int count_vaults(void) {
+    int n = 0;
+    const char *home = g_get_home_dir();
+    GDir *d = g_dir_open(home, 0, NULL);
+    if (!d) return 0;
+    const char *e;
+    while ((e = g_dir_read_name(d))) {
+        size_t l = strlen(e);
+        if (l > 6 && strcmp(e + l - 6, ".vault") == 0) n++;
+    }
+    g_dir_close(d);
+    return n;
+}
+
 int main(int argc, char **argv) {
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--tr") == 0) { LANG_TR = 1; break; }
@@ -306,6 +348,23 @@ int main(int argc, char **argv) {
         g_signal_connect(b2, "clicked", G_CALLBACK(on_scan_clicked), NULL);
         gtk_box_pack_start(GTK_BOX(row), b2, TRUE, TRUE, 0);
         gtk_box_pack_start(GTK_BOX(box), row, FALSE, FALSE, 0);
+        /* Terry's Dice row: status + one-click password + vault count */
+        {
+            char dice[256];
+            char *id = run_capture("terry-dice id 2>/dev/null");
+            if (id)
+                snprintf(dice, sizeof(dice), "%s %.12s... | %s: %d",
+                    T("Dice: ready (machine", "Zar: hazır (makine"),
+                    id, T("Vaults here", "Buradaki kasalar"), count_vaults());
+            else
+                snprintf(dice, sizeof(dice), "%s",
+                    T("Dice: ready (terry-dice installed)", "Zar: hazır (terry-dice kurulu)"));
+            GtkWidget *dl = gtk_label_new(dice);
+            gtk_box_pack_start(GTK_BOX(box), dl, FALSE, FALSE, 0);
+            GtkWidget *b3 = gtk_button_new_with_label(T("Generate Password", "Parola Üret"));
+            g_signal_connect(b3, "clicked", G_CALLBACK(on_passgen_clicked), NULL);
+            gtk_box_pack_start(GTK_BOX(box), b3, FALSE, FALSE, 0);
+        }
         gtk_notebook_append_page(GTK_NOTEBOOK(nb), box, tab_label_page(T("Security", "Güvenlik")));
     }
 
@@ -314,7 +373,7 @@ int main(int argc, char **argv) {
         GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
         gtk_container_set_border_width(GTK_CONTAINER(box), 16);
         char about[512];
-        snprintf(about, sizeof(about), "ALI Linux 1.2.9\nXFCE - amd64.\n\nALI Center 1.2.9 - C + GTK3 (+ Sentinel Security tab).");
+        snprintf(about, sizeof(about), "ALI Linux 1.3.0\nXFCE - amd64.\n\nALI Center 1.3.0 - C + GTK3 (+ Sentinel Security tab).");
         char *vs = read_file_all("/run/templeos-oracle");
         if (vs) {
             char *vl = strstr(vs, "verse=");

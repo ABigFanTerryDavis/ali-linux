@@ -1,0 +1,46 @@
+# ALI splash: dark background, big title, progress bar.
+# bg.png / bar-bg.png / bar-fill.png are generated at build time by the
+# branding hook (stdlib python3, solid colors - zero asset deps).
+bg = Image("bg.png");
+bg_sp = Sprite(bg);
+bg_sp.SetPosition(Window.GetX(), Window.GetY(), -10);
+
+title = Image.Text("ALI Linux", 1, 1, 1, "Sans 72");
+ts = Sprite(title);
+tx = Window.GetX() + (Window.GetWidth() - title.GetWidth()) / 2;
+ty = Window.GetY() + (Window.GetHeight() - title.GetHeight()) / 2 - 80;
+ts.SetPosition(tx, ty, 10);
+
+sub = Image.Text("XFCE", 0.55, 0.58, 0.72, "Sans 28");
+ss = Sprite(sub);
+ss.SetPosition(Window.GetX() + (Window.GetWidth() - sub.GetWidth()) / 2, ty + title.GetHeight() + 20, 10);
+
+bar_w = 600;
+bar_h = 20;
+bx = Window.GetX() + (Window.GetWidth() - bar_w) / 2;
+by = Window.GetY() + Window.GetHeight() * 0.75;
+
+bar_bg = Image("bar-bg.png");
+bbs = Sprite(bar_bg);
+bbs.SetPosition(bx, by, 10);
+
+bar_fill = Image("bar-fill.png");
+bfs = Sprite(bar_fill);
+bfs.SetPosition(bx, by, 11);
+bfs.SetClip(bx, by, 0, bar_h);
+
+fun progress_callback(duration, progress) {
+    if (progress > 1) {
+        progress = 1;
+    }
+    bfs.SetClip(bx, by, Math.Int(bar_w * progress), bar_h);
+}
+Plymouth.SetBootProgressFunction(progress_callback);
+
+fun message_callback(text) {
+}
+Plymouth.SetMessageFunction(message_callback);
+
+fun quit_callback() {
+}
+Plymouth.SetQuitFunction(quit_callback);

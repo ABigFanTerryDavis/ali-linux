@@ -10,6 +10,8 @@
 #   7. Download sorter: files ~/Downloads by extension, skips fresh (15s).
 #   8. Coffee mode: inhibits suspend while SSH/media is active (1m).
 #   9. Crash catcher: fresh coredumps become a visible ping (hourly).
+#  10. Battery brain: powersave on battery, restore on AC, low-battery
+#      alarm (1m). Game mode and Performance boot entry always win.
 set -u
 STATE=/var/lib/terrydavis
 STATUS=/run/terrydavis-status
@@ -48,6 +50,7 @@ write_status() {
         echo "night_light=$(pgrep -x redshift >/dev/null 2>&1 && echo on || echo off)"
         echo "wifi=$(nmcli -t -f STATE g 2>/dev/null || echo unknown)"
         echo "coffee=$([ -f $STATE/coffee.pid ] && pgrep -F $STATE/coffee.pid >/dev/null 2>&1 && echo on || echo off)"
+        echo "battery=$(cat $STATE/battery 2>/dev/null || echo unknown)"
         echo "crashes=$(cat $STATE/crash-count 2>/dev/null || echo 0)"
         echo "last_sort=$(cat $STATE/last-sort 2>/dev/null || echo never)"
         echo "last_check=$(date '+%F %T')"
@@ -257,6 +260,50 @@ coffee_check() {
     fi
 }
 
+battery_check() {
+    # laptop love: powersave while discharging, restore on AC.
+    # Never fights game mode (explicit play wins) or a Performance boot.
+    bat=""
+    for d in /sys/class/power_supply/BAT*; do
+        [ -d "$d" ] && bat="$d" && break
+    done
+    [ -n "$bat" ] || return 0
+    st=$(cat "$bat/status" 2>/dev/null)
+    cap=$(cat "$bat/capacity" 2>/dev/null)
+    case "$cap" in ''|*[!0-9]*) cap="" ;; esac
+    echo "${st:-unknown}${cap:+ $cap%}" > "$STATE/battery"
+    gaming=0
+    [ "$(cat $STATE/gamemode 2>/dev/null)" = "on" ] && gaming=1
+    if [ "$st" = "Discharging" ]; then
+        if [ "$gaming" = "0" ]; then
+            if [ "$(cat $STATE/battery.gov 2>/dev/null)" != "powersave" ]; then
+                set_gov normal
+                echo powersave > "$STATE/battery.gov"
+                log "battery: discharging, governor relaxed"
+            fi
+        fi
+        if [ -n "$cap" ] && [ "$cap" -le 15 ]; then
+            if [ ! -f "$STATE/battery.low" ]; then
+                ping "ALI Battery" "battery at ${cap}% - plug in soon"
+                echo "$(date '+%F %T')" > "$STATE/battery.low"
+                echo "battery ${cap}%" > "$STATE/last-notice"
+                log "cried about: battery ${cap}%"
+            fi
+        else
+            rm -f "$STATE/battery.low"
+        fi
+    else
+        # Charging/Full/AC: restore (game mode keeps its own performance)
+        if [ "$(cat $STATE/battery.gov 2>/dev/null)" = "powersave" ] && [ "$gaming" = "0" ]; then
+            set_gov normal
+            rm -f "$STATE/battery.gov"
+            log "battery: back on AC, governor restored"
+        fi
+        rm -f "$STATE/battery.low"
+    fi
+    write_status
+}
+
 crash_check() {
     # coredumps die in silence; make the latest one visible (once each).
     total=0
@@ -337,6 +384,7 @@ announce_once() {
     game_check
     wifi_check
     coffee_check
+    battery_check
     night_check
     sorter
     crash_check
@@ -345,7 +393,7 @@ announce_once() {
 
 case "${1:-}" in
     --once) announce_once ;;
-    *)  log "starting (QoL: janitor + crier + usb + game + wifi + night + sorter + coffee + crash)"
+    *)  log "starting (QoL: janitor + crier + usb + game + wifi + night + sorter + coffee + crash + battery)"
         write_status
         n=0
         w=0
@@ -358,6 +406,7 @@ case "${1:-}" in
                 w=0
                 wifi_check
                 coffee_check
+                battery_check
             fi
             n=$((n + 1))
             if [ "$n" -ge "$SLOW_EVERY" ]; then
