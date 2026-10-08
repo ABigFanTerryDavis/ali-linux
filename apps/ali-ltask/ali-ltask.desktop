@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=ALI Task Manager
+Comment=Process + performance manager (ported LTaskManager)
+Exec=ali-ltask
+Icon=utilities-system-monitor
+Terminal=false
+Categories=System;Monitor;X-XFCE;
+Keywords=ALI;Task;Processes;Performance;Monitor;

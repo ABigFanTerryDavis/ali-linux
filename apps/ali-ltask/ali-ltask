@@ -1,0 +1,4 @@
+#!/bin/sh
+# ali-ltask - launcher for ALI Task Manager (ported LTaskManager, PyQt6).
+# Needs a display; run as your user (sudo only to manage root processes).
+exec python3 /usr/share/ali-ltask/ltaskmanager.py "$@"

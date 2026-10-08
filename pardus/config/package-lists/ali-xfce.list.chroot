@@ -24,3 +24,6 @@ x11-utils
 x11-xserver-utils
 redshift
 beep
+python3-pyqt6
+python3-psutil
+python3-pyqtgraph

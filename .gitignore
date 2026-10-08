@@ -1,10 +1,7 @@
-cache/
+__pycache__/
+*.pyc
+*.pyo
+apps/*/build/
+apps/*/*.deb
 *.iso
-*.hybrid.iso
-*.files
-*.contents
-*.packages
-binary/
-chroot/
-stage/
 SHA256SUMS.txt
