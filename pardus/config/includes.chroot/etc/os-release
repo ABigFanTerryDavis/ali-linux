@@ -1,7 +1,7 @@
-PRETTY_NAME="ALI Linux 1.2.6 Pardus"
+PRETTY_NAME="ALI Linux 1.2.7 Pardus"
 NAME="ALI Linux"
-VERSION_ID="1.2.6"
-VERSION="1.2.6 Pardus"
+VERSION_ID="1.2.7"
+VERSION="1.2.7 Pardus"
 ID=ali
 ID_LIKE=debian
 HOME_URL="https://github.com/"

@@ -1,4 +1,4 @@
-# ALI Linux 1.2.6 - Debian trixie based, XFCE, amd64 (+ Pardus variant)
+# ALI Linux 1.2.7 - Debian trixie based, XFCE, amd64 (+ Pardus variant)
 
 Learning project. Visible rebrand only - underneath 100% Debian.
 
@@ -27,6 +27,7 @@ Learning project. Visible rebrand only - underneath 100% Debian.
 - 1.2.4 - (staged, NO PUSH until 1.2.8) templeos tribute daemon: Oracle, ali-retro 640x480 mode, Daily verse (+ Center About verse)
 - 1.2.5 - (staged, NO PUSH until 1.2.8) Turkish pass (Center+CLI+launchers), terrydavis v3 (Coffee+Crash), ALI Hymns app
 - 1.2.6 - (staged, NO PUSH until 1.2.8) ALI Task Manager: ported LTaskManager (PyQt6) as .deb + deps + menu entry
+- 1.2.7 - (staged, NO PUSH until 1.2.8) ALI look: mac-style dock bar (docklike), clean desktop, traffic-light windows, ALI menu logo
 
 ## Pre-push checklist (1.2.8 push - DO NOT PUSH BEFORE 1.2.8)
 ```powershell
@@ -58,14 +59,14 @@ Wait 20-40 min. Download artifact `ali-linux-iso`.
 VirtualBox:
 1. New -> Linux Debian 64-bit, 4GB RAM, 20GB VDI
 2. Settings -> System -> EFI: ON (we build grub-efi)
-3. Storage -> mount `ali-linux-1.2.6-amd64.hybrid.iso`
+3. Storage -> mount `ali-linux-1.2.7-amd64.hybrid.iso`
 4. Start -> Try Live -> user `ali`, then double-click Debian Installer to install to disk.
 
 QEMU (faster check):
 ```powershell
-qemu-system-x86_64 -m 4096 -cdrom ali-linux-1.2.6-amd64.hybrid.iso -boot d -enable-hvm
+qemu-system-x86_64 -m 4096 -cdrom ali-linux-1.2.7-amd64.hybrid.iso -boot d -enable-hvm
 # with UEFI:
-qemu-system-x86_64 -m 4096 -bios "C:\Program Files\qemu\share\OVMF.fd" -cdrom ali-linux-1.2.6-amd64.hybrid.iso -boot d
+qemu-system-x86_64 -m 4096 -bios "C:\Program Files\qemu\share\OVMF.fd" -cdrom ali-linux-1.2.7-amd64.hybrid.iso -boot d
 ```
 
 Verify branding:
