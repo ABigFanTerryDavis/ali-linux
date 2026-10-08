@@ -1,8 +1,13 @@
 #!/bin/sh
 # ali-update - one-shot system update for ALI Linux
+# Turkish: ALI_LANG=tr
 set -e
 sudo apt update
 sudo apt full-upgrade -y
 sudo apt autoremove -y
 sudo apt clean
-echo "ALI update done."
+if [ "${ALI_LANG:-}" = "tr" ] || [ "${ALI_LANG:-}" = "TR" ]; then
+  echo "ALI güncelleme tamam."
+else
+  echo "ALI update done."
+fi

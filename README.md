@@ -1,4 +1,4 @@
-# ALI Linux 1.3.9 - Debian trixie based, XFCE, amd64
+# ALI Linux 1.4.0 - Debian trixie based, XFCE, amd64
 
 Learning project. Visible rebrand only - underneath 100% Debian.
 
@@ -39,7 +39,8 @@ Learning project. Visible rebrand only - underneath 100% Debian.
 - 1.3.6 - (staged, PUSHED in 1.3.9) Shrine screensaver, Updates tab, Thunar actions, ali-info v2, game corner
 - 1.3.7 - (staged, PUSHED in 1.3.9) Power pack: ali-mirrors, Services boot toggles, governor buttons, preload, Notepad tabs
 - 1.3.8 - (staged, PUSHED in 1.3.9) Hardening: pre-push audit, Notepad print, Hymns queue, updater dry-run
-- 1.3.9 - PUSH: what's-new tour page + Welcome button, full version sweep
+- 1.3.9 - PUSHED: what's-new tour page + Welcome button, full version sweep
+- 1.4.0 - (staged, NO PUSH until 1.4.9) Official-ness: Flatpak+Flathub, 20 man pages, LUKS splash prompt, CLI Turkish mop-up, phone link
 
 ## Push checklist (1.3.9 push - THIS IS IT)
 ```powershell

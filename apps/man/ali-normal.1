@@ -1,0 +1,11 @@
+.TH ALI-NORMAL 1 "October 2026" "ALI Linux 1.4.0" "User Commands"
+.SH NAME
+ali-normal \- back to the default CPU governor
+.SH SYNOPSIS
+.B ali-normal
+.SH DESCRIPTION
+Undoes
+.BR ali-perf (1):
+restores schedutil (else powersave, else ondemand) on every CPU.
+.SH SEE ALSO
+.BR ali-perf (1)

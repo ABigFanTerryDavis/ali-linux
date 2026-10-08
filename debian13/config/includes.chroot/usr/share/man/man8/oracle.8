@@ -1,0 +1,15 @@
+.TH ORACLE 8 "October 2026" "ALI Linux 1.4.0" "System Daemons"
+.SH NAME
+oracle \- ALI security voice: verdicts and lots
+.SH SYNOPSIS
+.B oracle
+.RI [ \-\-once ]
+.SH DESCRIPTION
+Renders security state (Sentinel blocks/alerts/vault fails,
+Odysseus warnings, sea state) into verdicts, speaking only when
+the state changes, and relays templeos lots. Unified feed:
+.IR /run/ali-oracle ,
+read by ALI Center and the town crier.
+.SH SEE ALSO
+.BR ali-sentinel (1),
+.BR templeos (8)

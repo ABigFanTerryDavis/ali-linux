@@ -1,0 +1,19 @@
+.TH SENTINEL 8 "October 2026" "ALI Linux 1.4.0" "System Daemons"
+.SH NAME
+sentinel \- IDS watch plus IPS exterminate
+.SH SYNOPSIS
+.B sentinel
+.RI [ \-\-once | learn ]
+.RB ( started by systemd; drive it with
+.BR ali-sentinel (1))
+.SH DESCRIPTION
+Watches brute-force logins (auto-firewalls at 5 fails), new
+listening ports, deleted-binary and known-bad processes, and
+watched system files. Alerts via desktop ping, feed
+.RI ( /run/ali-security )
+and log. Baselines self-create on first boot;
+.B learn
+re-trusts the present.
+.SH SEE ALSO
+.BR ali-sentinel (1),
+.BR oracle (8)

@@ -17,7 +17,7 @@ lb config noauto \
   --iso-preparer "ALI Linux" \
   --iso-publisher "ALI Linux" \
   --iso-volume "ALI Linux" \
-  --image-name "ali-linux-1.3.9-amd64" \
+  --image-name "ali-linux-1.4.0-amd64" \
   --firmware-binary true \
   --firmware-chroot true \
   --updates true \

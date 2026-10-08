@@ -1,0 +1,14 @@
+.TH ALI-UPDATE 1 "October 2026" "ALI Linux 1.4.0" "User Commands"
+.SH NAME
+ali-update \- upgrade the Debian base underneath ALI Linux
+.SH SYNOPSIS
+.B ali-update
+.SH DESCRIPTION
+Runs
+.B apt update
+followed by a full upgrade. This moves the Debian base only;
+the ALI layer (apps, daemons, branding) moves with
+.BR ali-update-version (1).
+.SH SEE ALSO
+.BR ali-update-version (1),
+.BR ali-mirrors (1)

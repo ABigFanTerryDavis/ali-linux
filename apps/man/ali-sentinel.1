@@ -1,0 +1,23 @@
+.TH ALI-SENTINEL 1 "October 2026" "ALI Linux 1.4.0" "User Commands"
+.SH NAME
+ali-sentinel \- drive the Sentinel IDS/IPS
+.SH SYNOPSIS
+.B ali-sentinel
+.RI [ status | events | blocked | unblock\ ip | learn | check | kill\ pid ]
+.SH DESCRIPTION
+.B status
+shows daemon state, exterminated-IP count and recent events.
+.B blocked
+lists firewall blocks.
+.B unblock
+frees an IP.
+.B learn
+re-trusts current ports/files.
+.B check
+runs one scan now.
+.B kill
+terminates a suspicious PID (never 1).
+Turkish with ALI_LANG=tr.
+.SH SEE ALSO
+.BR sentinel (8),
+.BR oracle (8)

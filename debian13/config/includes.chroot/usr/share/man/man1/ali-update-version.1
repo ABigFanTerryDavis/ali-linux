@@ -1,0 +1,19 @@
+.TH ALI-UPDATE-VERSION 1 "October 2026" "ALI Linux 1.4.0" "User Commands"
+.SH NAME
+ali-update-version \- in-place ALI-layer upgrade, no reinstall
+.SH SYNOPSIS
+.B ali-update-version \-\-check
+.I target
+.br
+.B ali-update-version
+.I target
+.SH DESCRIPTION
+Moves the ALI layer to tag vTARGET from GitHub: rebuilds the C
+apps, installs scripts, units and desktops, stamps the version.
+.B \-\-check
+only reports what would change. The Debian base is separate;
+see
+.BR ali-update (1).
+.SH SEE ALSO
+.BR ali-update (1),
+.BR ali-mirrors (1)

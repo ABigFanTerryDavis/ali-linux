@@ -41,6 +41,18 @@ fun message_callback(text) {
 }
 Plymouth.SetMessageFunction(message_callback);
 
+fun password_callback(prompt, bullets) {
+    pw = Image.Text(prompt, 1, 1, 1, "Sans 28");
+    pws = Sprite(pw);
+    pws.SetPosition(Window.GetX() + (Window.GetWidth() - pw.GetWidth()) / 2,
+        Window.GetY() + Window.GetHeight() * 0.80, 10);
+    bl = Image.Text(bullets, 0.55, 0.58, 0.72, "Sans 28");
+    bls = Sprite(bl);
+    bls.SetPosition(Window.GetX() + (Window.GetWidth() - bl.GetWidth()) / 2,
+        Window.GetY() + Window.GetHeight() * 0.80 + 40, 10);
+}
+Plymouth.SetPasswordFunction(password_callback);
+
 fun quit_callback() {
 }
 Plymouth.SetQuitFunction(quit_callback);

@@ -1,0 +1,18 @@
+.TH ALI-PERF 1 "October 2026" "ALI Linux 1.4.0" "User Commands"
+.SH NAME
+ali-perf, ali-normal \- switch CPU governor at runtime
+.SH SYNOPSIS
+.B ali-perf
+.br
+.B ali-normal
+.SH DESCRIPTION
+.B ali-perf
+pins every CPU to the
+.B performance
+governor right now.
+.B ali-normal
+restores the default (schedutil, else powersave).
+Full effect (mitigations off) needs the Performance boot entry;
+see the GRUB menu. No output on success beyond confirmation.
+.SH SEE ALSO
+.BR ali-info (1)

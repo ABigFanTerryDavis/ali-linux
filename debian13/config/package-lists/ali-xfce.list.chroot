@@ -35,6 +35,8 @@ xfconf
 sox
 xprintidle
 preload
+flatpak
+kdeconnect
 conky-std
 cups
 system-config-printer

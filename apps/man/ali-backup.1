@@ -1,0 +1,22 @@
+.TH ALI-BACKUP 1 "October 2026" "ALI Linux 1.4.0" "User Commands"
+.SH NAME
+ali-backup \- home-folder backups with dice-named snapshots
+.SH SYNOPSIS
+.B ali-backup
+.RI [ destdir ]
+.br
+.B ali-backup restore
+.I snapshot.tgz
+.br
+.B ali-backup list
+.RI [ destdir ]
+.SH DESCRIPTION
+Tars $HOME to
+.I home-DATE-XXXXXX.tgz
+in the first removable mount, else ~/Backups. Skips caches,
+trash and the Backups folder itself.
+.B restore
+asks for YES before overwriting $HOME.
+.SH SEE ALSO
+.BR ali-vault (1),
+.BR terry-dice (1)

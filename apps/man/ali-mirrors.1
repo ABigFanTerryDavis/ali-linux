@@ -1,0 +1,14 @@
+.TH ALI-MIRRORS 1 "October 2026" "ALI Linux 1.4.0" "User Commands"
+.SH NAME
+ali-mirrors \- switch apt to the fastest Debian mirror
+.SH SYNOPSIS
+.B sudo ali-mirrors
+.SH DESCRIPTION
+Fetches trixie InRelease from each candidate mirror (TR first),
+picks the fastest reachable one, rewrites the apt sources
+(DEB822 URIs or one-line), keeping a .ali-bak backup, then runs
+.B apt-get update .
+Needs root and network.
+.SH SEE ALSO
+.BR ali-update (1),
+.BR sources.list (5)

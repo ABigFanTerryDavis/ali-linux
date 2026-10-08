@@ -1,0 +1,18 @@
+.TH TERRY-DICE 1 "October 2026" "ALI Linux 1.4.0" "User Commands"
+.SH NAME
+terry-dice \- the ALI security base: real random rolls
+.SH SYNOPSIS
+.B terry-dice hex
+.RI [ bytes ]
+.br
+.B terry-dice id
+.SH DESCRIPTION
+Each roll hashes machine stats (RAM x disk + RAM, uptime, boot
+id, load) with 32 fresh kernel-CSPRNG bytes. Stats make it yours,
+the kernel makes it unguessable. Refuses to roll without kernel
+entropy.
+.B id
+prints the stable machine ID (first roll kept).
+.SH SEE ALSO
+.BR ali-passgen (1),
+.BR ali-vault (1)

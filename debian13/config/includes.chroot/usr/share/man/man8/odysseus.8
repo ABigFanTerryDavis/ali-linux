@@ -1,0 +1,17 @@
+.TH ODYSSEUS 8 "October 2026" "ALI Linux 1.4.0" "System Daemons"
+.SH NAME
+odysseus \- first task up, last task down
+.SH SYNOPSIS
+.B odysseus
+.RI ( started by systemd, not by hand )
+.SH DESCRIPTION
+Boot-mode enforcer, health watchdog, status feed
+.RI ( /run/odysseus-status ),
+update notifier, Sentinel memory (archives + restores firewall
+blocks), Sentinel watchdog, and network navigator (traffic
+accounting + gateway/DNS/internet lighthouse). Logs to
+.IR /var/log/odysseus.log .
+.SH FILES
+.IR /usr/bin/odysseus ,
+.IR /usr/lib/systemd/system/odysseus.service ,
+.IR /var/lib/odysseus/last-shutdown

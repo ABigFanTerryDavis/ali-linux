@@ -1,0 +1,20 @@
+.TH ALI-VAULT 1 "October 2026" "ALI Linux 1.4.0" "User Commands"
+.SH NAME
+ali-vault \- AES-256 file vault on Terry's Dice
+.SH SYNOPSIS
+.B ali-vault lock
+.I file
+.br
+.B ali-vault unlock
+.I file.vault
+.br
+.B ali-vault list
+.SH DESCRIPTION
+.B lock
+rolls a dice data key, encrypts the file, wraps the key with your
+password (PBKDF2) and shreds the original.
+.B unlock
+reverses it; a wrong password raises a Sentinel ALERT.
+.SH SEE ALSO
+.BR terry-dice (1),
+.BR ali-passgen (1)

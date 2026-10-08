@@ -1,0 +1,16 @@
+.TH ALI-PASSGEN 1 "October 2026" "ALI Linux 1.4.0" "User Commands"
+.SH NAME
+ali-passgen \- passwords from Terry's Dice
+.SH SYNOPSIS
+.B ali-passgen
+.RI [ len ]
+.br
+.B ali-passgen \-\-words
+.RI [ n ]
+.SH DESCRIPTION
+Prints a 24-char (96-bit) random password by default.
+.B \-\-words
+prints 6 memorable words instead (logins only, never vault keys).
+.SH SEE ALSO
+.BR terry-dice (1),
+.BR ali-vault (1)
