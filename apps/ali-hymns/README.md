@@ -1,8 +1,10 @@
-# ali-hymns 1.2.5 - TempleOS-tribute chiptune player (C + GTK3)
+# ali-hymns 1.3.5 - TempleOS-tribute chiptune player (C + GTK3)
 
-Three original melodies (no covers): Temple Morning, Oracle's Dance,
-640x480. Play/Stop/Test-Speaker buttons, note display, Turkish via
+Six original melodies (no covers): Temple Morning, Oracle's Dance,
+640x480, Desert Walk, Shepherd's Flute, Amen. Play/Stop/Test-Speaker,
+volume slider, note display, Turkish via
 `--tr` / `ALI_LANG=tr` (second launcher included in the .deb).
 
-Sound goes through `beep`, which needs a real PC speaker - most VMs
-stay silent, and the notes still dance on screen either way.
+Sound picks its backend: sox `play` (real audio, everywhere) first,
+PC-speaker `beep` as fallback. v1 was beep-only, which is why it stood
+silent on VMs - fixed in v2.

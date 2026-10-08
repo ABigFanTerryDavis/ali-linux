@@ -3,12 +3,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* ALI Notepad v1 - C + GTK3, minimal open/save.
- * Separate app. Title shows "ALI Notepad" everywhere.
+/* ALI Notepad v2 (1.3.5) - C + GTK3, open/save/find, TR via --tr/ALI_LANG.
+ * Title shows "ALI Notepad" everywhere.
  */
+
+static int LANG_TR = 0;
+static const char *T(const char *en, const char *tr) { return LANG_TR ? tr : en; }
 
 static GtkWidget *textview;
 static char *current_file = NULL;
+static char *last_find = NULL;
 
 /* ALI shared look (1.3.4): /usr/share/ali/ali-style.css, silent fallback. */
 static void ali_style(void) {
@@ -25,7 +29,7 @@ static void set_title(GtkWindow *win) {
     if (current_file)
         snprintf(t, sizeof(t), "%s - ALI Notepad", current_file);
     else
-        snprintf(t, sizeof(t), "Untitled - ALI Notepad");
+        snprintf(t, sizeof(t), T("Untitled - ALI Notepad", "Başlıksız - ALI Notepad"));
     gtk_window_set_title(win, t);
 }
 
@@ -33,7 +37,7 @@ static void load_file(const char *path, GtkWindow *win) {
     FILE *f = fopen(path, "rb");
     if (!f) {
         GtkWidget *d = gtk_message_dialog_new(win, GTK_DIALOG_MODAL,
-            GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Cannot open:\n%s", path);
+            GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, T("Cannot open:\n%s", "Açılamadı:\n%s"), path);
         gtk_dialog_run(GTK_DIALOG(d));
         gtk_widget_destroy(d);
         return;
@@ -62,7 +66,7 @@ static int save_file(const char *path, GtkWindow *win) {
     FILE *f = fopen(path, "wb");
     if (!f) {
         GtkWidget *d = gtk_message_dialog_new(win, GTK_DIALOG_MODAL,
-            GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Cannot save:\n%s", path);
+            GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, T("Cannot save:\n%s", "Kaydedilemedi:\n%s"), path);
         gtk_dialog_run(GTK_DIALOG(d));
         gtk_widget_destroy(d);
         g_free(txt);
@@ -89,9 +93,9 @@ static void on_new(GtkMenuItem *m, gpointer u) {
 static void on_open(GtkMenuItem *m, gpointer u) {
     (void)m;
     GtkWindow *win = GTK_WINDOW(u);
-    GtkWidget *d = gtk_file_chooser_dialog_new("Open - ALI Notepad", win,
+    GtkWidget *d = gtk_file_chooser_dialog_new(T("Open - ALI Notepad", "Aç - ALI Notepad"), win,
         GTK_FILE_CHOOSER_ACTION_OPEN,
-        "_Cancel", GTK_RESPONSE_CANCEL, "_Open", GTK_RESPONSE_ACCEPT, NULL);
+        T("_Cancel", "_Vazgeç"), GTK_RESPONSE_CANCEL, T("_Open", "_Aç"), GTK_RESPONSE_ACCEPT, NULL);
     if (gtk_dialog_run(GTK_DIALOG(d)) == GTK_RESPONSE_ACCEPT) {
         char *p = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(d));
         load_file(p, win);
@@ -104,9 +108,9 @@ static void on_save(GtkMenuItem *m, gpointer u) {
     (void)m;
     GtkWindow *win = GTK_WINDOW(u);
     if (current_file) { save_file(current_file, win); return; }
-    GtkWidget *d = gtk_file_chooser_dialog_new("Save - ALI Notepad", win,
+    GtkWidget *d = gtk_file_chooser_dialog_new(T("Save - ALI Notepad", "Kaydet - ALI Notepad"), win,
         GTK_FILE_CHOOSER_ACTION_SAVE,
-        "_Cancel", GTK_RESPONSE_CANCEL, "_Save", GTK_RESPONSE_ACCEPT, NULL);
+        T("_Cancel", "_Vazgeç"), GTK_RESPONSE_CANCEL, T("_Save", "_Kaydet"), GTK_RESPONSE_ACCEPT, NULL);
     gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(d), TRUE);
     if (gtk_dialog_run(GTK_DIALOG(d)) == GTK_RESPONSE_ACCEPT) {
         char *p = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(d));
@@ -119,9 +123,9 @@ static void on_save(GtkMenuItem *m, gpointer u) {
 static void on_saveas(GtkMenuItem *m, gpointer u) {
     (void)m;
     GtkWindow *win = GTK_WINDOW(u);
-    GtkWidget *d = gtk_file_chooser_dialog_new("Save As - ALI Notepad", win,
+    GtkWidget *d = gtk_file_chooser_dialog_new(T("Save As - ALI Notepad", "Farklı Kaydet - ALI Notepad"), win,
         GTK_FILE_CHOOSER_ACTION_SAVE,
-        "_Cancel", GTK_RESPONSE_CANCEL, "_Save", GTK_RESPONSE_ACCEPT, NULL);
+        T("_Cancel", "_Vazgeç"), GTK_RESPONSE_CANCEL, T("_Save", "_Kaydet"), GTK_RESPONSE_ACCEPT, NULL);
     gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(d), TRUE);
     if (gtk_dialog_run(GTK_DIALOG(d)) == GTK_RESPONSE_ACCEPT) {
         char *p = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(d));
@@ -135,12 +139,71 @@ static void on_about(GtkMenuItem *m, gpointer u) {
     (void)m;
     GtkWidget *d = gtk_message_dialog_new(GTK_WINDOW(u), GTK_DIALOG_MODAL,
         GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE,
-        "ALI Notepad v1\nC + GTK3 for ALI Linux.");
+        "ALI Notepad v2\nC + GTK3 for ALI Linux.");
     gtk_dialog_run(GTK_DIALOG(d));
     gtk_widget_destroy(d);
 }
 
+static void find_next(GtkWindow *win) {
+    GtkTextBuffer *tb = gtk_text_view_get_buffer(GTK_TEXT_VIEW(textview));
+    const char *q = last_find;
+    char *tmp = NULL;
+    if (!q) {
+        GtkWidget *d = gtk_dialog_new_with_buttons(T("Find", "Bul"), win,
+            GTK_DIALOG_MODAL, T("_Cancel", "_Vazgeç"), GTK_RESPONSE_CANCEL,
+            T("_Find", "_Bul"), GTK_RESPONSE_ACCEPT, NULL);
+        GtkWidget *e = gtk_entry_new();
+        gtk_container_add(GTK_CONTAINER(gtk_dialog_get_content_area(GTK_DIALOG(d))), e);
+        gtk_widget_show_all(d);
+        if (gtk_dialog_run(GTK_DIALOG(d)) == GTK_RESPONSE_ACCEPT) {
+            tmp = g_strdup(gtk_entry_get_text(GTK_ENTRY(e)));
+            q = tmp;
+        }
+        gtk_widget_destroy(d);
+        if (!q || !*q) { g_free(tmp); return; }
+        free(last_find);
+        last_find = strdup(q);
+    }
+    GtkTextIter ins, mstart, mend;
+    gtk_text_buffer_get_iter_at_mark(tb, &ins, gtk_text_buffer_get_insert(tb));
+    if (!gtk_text_iter_forward_search(&ins, last_find, GTK_TEXT_SEARCH_TEXT_ONLY, &mstart, &mend, NULL)) {
+        gtk_text_buffer_get_start_iter(tb, &ins);
+        if (!gtk_text_iter_forward_search(&ins, last_find, GTK_TEXT_SEARCH_TEXT_ONLY, &mstart, &mend, NULL)) {
+            GtkWidget *d = gtk_message_dialog_new(win, GTK_DIALOG_MODAL,
+                GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE,
+                T("Not found: %s", "Bulunamadı: %s"), last_find);
+            gtk_dialog_run(GTK_DIALOG(d));
+            gtk_widget_destroy(d);
+            g_free(tmp);
+            return;
+        }
+    }
+    gtk_text_buffer_select_range(tb, &mstart, &mend);
+    gtk_text_view_scroll_to_iter(GTK_TEXT_VIEW(textview), &mstart, 0.0, FALSE, 0, 0);
+    g_free(tmp);
+}
+
+static void on_find(GtkMenuItem *m, gpointer u) {
+    (void)m;
+    free(last_find); last_find = NULL;
+    find_next(GTK_WINDOW(u));
+}
+
+static void on_find_next(GtkMenuItem *m, gpointer u) {
+    (void)m;
+    find_next(GTK_WINDOW(u));
+}
+
 int main(int argc, char **argv) {
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--tr") == 0) { LANG_TR = 1; break; }
+    }
+    if (!LANG_TR) {
+        const char *env = getenv("ALI_LANG");
+        if (env && (strcmp(env, "tr") == 0 || strcmp(env, "TR") == 0)) LANG_TR = 1;
+    }
+    /* --tr is a flag, not a file */
+    if (LANG_TR && argc > 1 && strcmp(argv[argc - 1], "--tr") == 0) argc--;
     gtk_init(&argc, &argv);
     ali_style();
 
@@ -157,30 +220,40 @@ int main(int argc, char **argv) {
     gtk_container_add(GTK_CONTAINER(win), vbox);
 
     GtkWidget *menubar = gtk_menu_bar_new();
-    GtkWidget *mfile = gtk_menu_item_new_with_label("File");
-    GtkWidget *mhelp = gtk_menu_item_new_with_label("Help");
+    GtkWidget *mfile = gtk_menu_item_new_with_label(T("File", "Dosya"));
+    GtkWidget *medit = gtk_menu_item_new_with_label(T("Edit", "Düzenle"));
+    GtkWidget *mhelp = gtk_menu_item_new_with_label(T("Help", "Yardım"));
     GtkWidget *fmenu = gtk_menu_new();
+    GtkWidget *emenu = gtk_menu_new();
     GtkWidget *hmenu = gtk_menu_new();
     gtk_menu_item_set_submenu(GTK_MENU_ITEM(mfile), fmenu);
+    gtk_menu_item_set_submenu(GTK_MENU_ITEM(medit), emenu);
     gtk_menu_item_set_submenu(GTK_MENU_ITEM(mhelp), hmenu);
     gtk_menu_shell_append(GTK_MENU_SHELL(menubar), mfile);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menubar), medit);
     gtk_menu_shell_append(GTK_MENU_SHELL(menubar), mhelp);
 
-    GtkWidget *i_new = gtk_menu_item_new_with_label("New");
-    GtkWidget *i_open = gtk_menu_item_new_with_label("Open...");
-    GtkWidget *i_save = gtk_menu_item_new_with_label("Save");
-    GtkWidget *i_saveas = gtk_menu_item_new_with_label("Save As...");
-    GtkWidget *i_quit = gtk_menu_item_new_with_label("Quit");
-    GtkWidget *i_about = gtk_menu_item_new_with_label("About");
+    GtkWidget *i_new = gtk_menu_item_new_with_label(T("New", "Yeni"));
+    GtkWidget *i_open = gtk_menu_item_new_with_label(T("Open...", "Aç..."));
+    GtkWidget *i_save = gtk_menu_item_new_with_label(T("Save", "Kaydet"));
+    GtkWidget *i_saveas = gtk_menu_item_new_with_label(T("Save As...", "Farklı Kaydet..."));
+    GtkWidget *i_quit = gtk_menu_item_new_with_label(T("Quit", "Çık"));
+    GtkWidget *i_find = gtk_menu_item_new_with_label(T("Find...", "Bul..."));
+    GtkWidget *i_next = gtk_menu_item_new_with_label(T("Find Next", "Sonrakini Bul"));
+    GtkWidget *i_about = gtk_menu_item_new_with_label(T("About", "Hakkında"));
     gtk_menu_shell_append(GTK_MENU_SHELL(fmenu), i_new);
     gtk_menu_shell_append(GTK_MENU_SHELL(fmenu), i_open);
     gtk_menu_shell_append(GTK_MENU_SHELL(fmenu), i_save);
     gtk_menu_shell_append(GTK_MENU_SHELL(fmenu), i_saveas);
     gtk_menu_shell_append(GTK_MENU_SHELL(fmenu), gtk_separator_menu_item_new());
     gtk_menu_shell_append(GTK_MENU_SHELL(fmenu), i_quit);
+    gtk_menu_shell_append(GTK_MENU_SHELL(emenu), i_find);
+    gtk_menu_shell_append(GTK_MENU_SHELL(emenu), i_next);
     gtk_menu_shell_append(GTK_MENU_SHELL(hmenu), i_about);
 
     g_signal_connect(i_new, "activate", G_CALLBACK(on_new), win);
+    g_signal_connect(i_find, "activate", G_CALLBACK(on_find), win);
+    g_signal_connect(i_next, "activate", G_CALLBACK(on_find_next), win);
     g_signal_connect(i_open, "activate", G_CALLBACK(on_open), win);
     g_signal_connect(i_save, "activate", G_CALLBACK(on_save), win);
     g_signal_connect(i_saveas, "activate", G_CALLBACK(on_saveas), win);

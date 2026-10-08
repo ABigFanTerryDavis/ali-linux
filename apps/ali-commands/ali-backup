@@ -1,0 +1,46 @@
+#!/bin/sh
+# ali-backup - home-folder backup with dice-named snapshots.
+# usage: ali-backup [destdir] | ali-backup restore <snapshot.tgz> | ali-backup list [destdir]
+# Default dest: /media/ali/*/ (first removable mount) else ~/Backups.
+# Snapshot: home-<date>-<dice6>.tgz (excludes caches, trash, vaults stay encrypted).
+# Turkish: ALI_LANG=tr
+set -u
+
+TR() {
+    if [ "${ALI_LANG:-}" = "tr" ] || [ "${ALI_LANG:-}" = "TR" ]; then printf '%s' "$2"; else printf '%s' "$1"; fi
+}
+
+pick_dest() {
+    for m in /media/ali/* /media/*/; do
+        if [ -d "$m" ] && [ -w "$m" ]; then printf '%s' "$m"; return 0; fi
+    done
+    mkdir -p "$HOME/Backups"
+    printf '%s' "$HOME/Backups"
+}
+
+case "${1:-}" in
+    restore)
+        snap="${2:?$(TR 'usage: ali-backup restore <snapshot.tgz>' 'kullanım: ali-backup restore <snapshot.tgz>')}"
+        [ -f "$snap" ] || { echo "$(TR "no such snapshot: $snap" "böyle bir yedek yok: $snap")" >&2; exit 1; }
+        printf '%s' "$(TR "Restore $snap over \$HOME? Type YES: " "\$HOME üzerine geri yüklensin mi? YES yaz: ")"
+        read -r ans
+        [ "$ans" = "YES" ] || { echo "$(TR 'aborted' 'vazgeçildi')"; exit 1; }
+        tar -xzf "$snap" -C "$HOME" || exit 1
+        echo "$(TR "restored: $snap" "geri yüklendi: $snap")"
+        ;;
+    list)
+        ls -1 "${2:-$(pick_dest)}"/home-*.tgz 2>/dev/null || echo "$(TR '(no snapshots)' '(yedek yok)')"
+        ;;
+    *)
+        dest="${1:-$(pick_dest)}"
+        mkdir -p "$dest" || exit 1
+        tag=$(terry-dice hex 3 2>/dev/null || echo deadbe)
+        snap="$dest/home-$(date +%F)-$tag.tgz"
+        tar -czf "$snap" -C "$HOME" \
+            --exclude=.cache --exclude=.local/share/Trash \
+            --exclude=Backups --exclude=.thumbnails \
+            . || exit 1
+        echo "$(TR "backed up to: $snap" "yedeklendi: $snap")"
+        ls -lh "$snap"
+        ;;
+esac

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=ALI Notepad (Türkçe)
+Comment=ALI Linux metin düzenleyici (Türkçe)
+Exec=env ALI_LANG=tr ali-notepad %F
+Icon=ali-notepad
+Terminal=false
+Categories=Utility;TextEditor;
+MimeType=text/plain;
+Keywords=ALI;Not;Metin;Düzenleyici;

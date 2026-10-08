@@ -4,6 +4,7 @@
 # full Turkish display pass via _()/TRMAP + index-keyed sort/filter (1.3.1).
 # Everything else is byte-identical upstream - send app bugs there.
 import sys
+import os
 import psutil
 import datetime
 import subprocess
@@ -81,6 +82,14 @@ TRMAP = {
     "Load": "Yük",
     "Active": "Etkin",
     "Sub": "Alt",
+    "Startup": "Başlangıç",
+    "Application": "Uygulama",
+    "Enabled": "Etkin",
+    "Source": "Kaynak",
+    "Yes": "Evet",
+    "No": "Hayır",
+    "Enable / Disable": "Etkinleştir / Kapat",
+    "Disabled": "Kapatıldı",
     "CPU detail": "CPU ayrıntı",
     "Memory detail": "Bellek ayrıntı",
     "Disk detail": "Disk ayrıntı",
@@ -402,6 +411,110 @@ class ServicesWidget(QWidget):
         self.refresh()
 
 
+# ================= STARTUP WIDGET (1.3.5) =================
+# Autostart entries: user (~/.config/autostart) + system (/etc/xdg/autostart).
+# Toggle writes Hidden=true/false into the USER copy (never touches system).
+class StartupWidget(QWidget):
+    def __init__(self):
+        super().__init__()
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(12, 12, 12, 12)
+        title = QLabel(_("Startup"))
+        title.setStyleSheet("font-size: 18px; font-weight: bold; padding: 4px;")
+        layout.addWidget(title)
+
+        self.table = QTableWidget(0, 3)
+        self.table.setHorizontalHeaderLabels([_("Application"), _("Enabled"), _("Source")])
+        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.table.setColumnWidth(1, 100)
+        self.table.setColumnWidth(2, 220)
+        self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.table.setAlternatingRowColors(True)
+        layout.addWidget(self.table)
+
+        row = QHBoxLayout()
+        self.refresh_btn = QPushButton(_("Refresh"))
+        self.refresh_btn.clicked.connect(self.refresh)
+        row.addWidget(self.refresh_btn)
+        self.toggle_btn = QPushButton(_("Enable / Disable"))
+        self.toggle_btn.clicked.connect(self.toggle)
+        row.addWidget(self.toggle_btn)
+        layout.addLayout(row)
+
+        self.status = QLabel("")
+        self.status.setStyleSheet("color: #666; font-size: 11px;")
+        layout.addWidget(self.status)
+
+    def _entries(self):
+        import configparser
+        found = {}
+        for src, base in (("system", "/etc/xdg/autostart"), ("user", os.path.expanduser("~/.config/autostart"))):
+            try:
+                names = os.listdir(base)
+            except Exception:
+                continue
+            for fn in sorted(names):
+                if not fn.endswith(".desktop"):
+                    continue
+                cp = configparser.ConfigParser(interpolation=None)
+                try:
+                    cp.read(os.path.join(base, fn), encoding="utf-8")
+                    name = cp.get("Desktop Entry", "Name", fallback=fn)
+                    hidden = cp.get("Desktop Entry", "Hidden", fallback="false").lower() == "true"
+                except Exception:
+                    name, hidden = fn, False
+                found[fn] = {"name": name, "file": fn, "src": src,
+                             "user_path": os.path.join(os.path.expanduser("~/.config/autostart"), fn),
+                             "sys_path": os.path.join("/etc/xdg/autostart", fn),
+                             "hidden": hidden}
+        return [found[k] for k in sorted(found)]
+
+    def refresh(self):
+        self.rows = self._entries()
+        self.table.setRowCount(len(self.rows))
+        for i, e in enumerate(self.rows):
+            for j, val in enumerate([e["name"], _("Yes") if not e["hidden"] else _("No"), e["src"]]):
+                it = QTableWidgetItem(val)
+                it.setFlags(it.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                if j == 1:
+                    it.setForeground(QBrush(QColor("darkgreen" if not e["hidden"] else "red")))
+                self.table.setItem(i, j, it)
+        self.status.setText(f"{len(self.rows)} {_('Startup').lower()}" if not TR else f"{len(self.rows)} başlangıç öğesi")
+
+    def toggle(self):
+        row = self.table.currentRow()
+        if row < 0 or row >= len(getattr(self, "rows", [])):
+            return
+        e = self.rows[row]
+        try:
+            os.makedirs(os.path.dirname(e["user_path"]), exist_ok=True)
+            if not e["hidden"]:
+                base = e["sys_path"] if os.path.exists(e["sys_path"]) else e["user_path"]
+                with open(base, encoding="utf-8") as f:
+                    content = f.read()
+                if "[Desktop Entry]" not in content:
+                    content = "[Desktop Entry]\n" + content
+                content += "\nHidden=true\n"
+                with open(e["user_path"], "w", encoding="utf-8") as f:
+                    f.write(content)
+                self.status.setText(f"{_('Disabled')}: {e['name']}")
+            else:
+                if e["src"] == "system" and os.path.exists(e["user_path"]):
+                    os.remove(e["user_path"])
+                    self.status.setText(f"{_('Enabled')}: {e['name']}")
+                else:
+                    with open(e["user_path"], encoding="utf-8") as f:
+                        content = f.read()
+                    content = content.replace("Hidden=true", "Hidden=false").replace("Hidden=1", "Hidden=false")
+                    with open(e["user_path"], "w", encoding="utf-8") as f:
+                        f.write(content)
+                    self.status.setText(f"{_('Enabled')}: {e['name']}")
+        except Exception as ex:
+            QMessageBox.warning(self, _("Error"), str(ex))
+        self.refresh()
+
+
 class ProcessManager(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -434,7 +547,8 @@ class ProcessManager(QMainWindow):
         self.btn_proc = QPushButton("  ◉  " + _("Processes"))
         self.btn_perf = QPushButton("  ◈  " + _("Performance"))
         self.btn_svc = QPushButton("  ⚙  " + _("Services"))
-        for b in [self.btn_proc, self.btn_perf, self.btn_svc]:
+        self.btn_startup = QPushButton("  🚀  " + _("Startup"))
+        for b in [self.btn_proc, self.btn_perf, self.btn_svc, self.btn_startup]:
             b.setFixedHeight(42)
             b.setCursor(Qt.CursorShape.PointingHandCursor)
             b.setStyleSheet("""
@@ -447,6 +561,7 @@ class ProcessManager(QMainWindow):
         sb_layout.addWidget(self.btn_proc)
         sb_layout.addWidget(self.btn_perf)
         sb_layout.addWidget(self.btn_svc)
+        sb_layout.addWidget(self.btn_startup)
         sb_layout.addStretch()
         sb_footer = QLabel("ALI Linux • PyQt6")
         sb_footer.setStyleSheet("color: #9aa0a6; font-size: 10px; padding: 6px;")
@@ -560,15 +675,20 @@ class ProcessManager(QMainWindow):
         # PAGE 2: SERVICES
         self.page_svc = ServicesWidget()
 
+        # PAGE 3: STARTUP
+        self.page_startup = StartupWidget()
+
         self.stack.addWidget(self.page_proc)
         self.stack.addWidget(self.page_perf)
         self.stack.addWidget(self.page_svc)
+        self.stack.addWidget(self.page_startup)
         self.stack.setCurrentIndex(0)
 
         # sidebar switching
         self.btn_proc.clicked.connect(lambda: self.switch_tab(0))
         self.btn_perf.clicked.connect(lambda: self.switch_tab(1))
         self.btn_svc.clicked.connect(lambda: self.switch_tab(2))
+        self.btn_startup.clicked.connect(lambda: self.switch_tab(3))
 
         # Timer for processes
         self.timer = QTimer(self)
@@ -592,8 +712,11 @@ class ProcessManager(QMainWindow):
         self.btn_proc.setStyleSheet(active if idx==0 else inactive)
         self.btn_perf.setStyleSheet(active if idx==1 else inactive)
         self.btn_svc.setStyleSheet(active if idx==2 else inactive)
+        self.btn_startup.setStyleSheet(active if idx==3 else inactive)
         if idx == 2:
             self.page_svc.refresh()
+        elif idx == 3:
+            self.page_startup.refresh()
 
     def on_sort_changed(self, text):
         idx = self.sort_combo.currentIndex()

@@ -3,14 +3,24 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* ALI Hymns 1.2.5 - TempleOS-tribute chiptune player, C + GTK3.
- * Original melodies (no covers). Sound via `beep` (needs a PC speaker;
- * silent on most VMs - the notes still dance on screen either way).
+/* ALI Hymns 1.3.5 - TempleOS-tribute chiptune player, C + GTK3.
+ * Original melodies (no covers). Two backends, auto-picked: `play` (sox,
+ * real audio - works everywhere) first, PC-speaker `beep` as fallback.
  * --tr flag or ALI_LANG=tr for Turkish buttons.
  */
 
 static int LANG_TR = 0;
 static const char *T(const char *en, const char *tr) { return LANG_TR ? tr : en; }
+
+/* 0 = none, 1 = beep, 2 = play */
+static int backend(void) {
+    static int b = -1;
+    if (b >= 0) return b;
+    b = 0;
+    if (g_find_program_in_path("play")) b = 2;
+    else if (g_find_program_in_path("beep")) b = 1;
+    return b;
+}
 
 static void launch_bg(const char *cmd) {
     /* fire-and-forget through /bin/sh so beep plays without freezing UI */
@@ -26,22 +36,59 @@ static void launch_bg(const char *cmd) {
     }
 }
 
-/* freq,ms pairs encoded as beep args */
+/* freq:ms pairs; beep form + play form (freq:secs loop) */
 static const char *H_TEMPLE =
     "beep -f 523 -l 300 -n -f 659 -l 300 -n -f 784 -l 300 -n -f 1047 -l 500 "
     "-n -f 784 -l 300 -n -f 659 -l 300 -n -f 523 -l 600";
+static const char *P_TEMPLE = "523:0.30 659:0.30 784:0.30 1047:0.50 784:0.30 659:0.30 523:0.60";
 static const char *H_ORACLE =
     "beep -f 440 -l 200 -n -f 523 -l 200 -n -f 659 -l 200 -n -f 880 -l 400 "
     "-n -f 784 -l 200 -n -f 659 -l 200 -n -f 523 -l 200 -n -f 440 -l 500";
+static const char *P_ORACLE = "440:0.20 523:0.20 659:0.20 880:0.40 784:0.20 659:0.20 523:0.20 440:0.50";
 static const char *H_640 =
     "beep -f 523 -l 150 -n -f 392 -l 150 -n -f 523 -l 150 -n -f 659 -l 150 "
     "-n -f 587 -l 150 -n -f 784 -l 400 -n -f 659 -l 150 -n -f 1047 -l 600";
+static const char *P_640 = "523:0.15 392:0.15 523:0.15 659:0.15 587:0.15 784:0.40 659:0.15 1047:0.60";
+static const char *H_DESERT =
+    "beep -f 329 -l 250 -n -f 392 -l 250 -n -f 440 -l 250 -n -f 494 -l 400 "
+    "-n -f 440 -l 250 -n -f 392 -l 250 -n -f 329 -l 600";
+static const char *P_DESERT = "329:0.25 392:0.25 440:0.25 494:0.40 440:0.25 392:0.25 329:0.60";
+static const char *H_FLUTE =
+    "beep -f 587 -l 400 -n -f 740 -l 400 -n -f 880 -l 400 -n -f 784 -l 300 "
+    "-n -f 740 -l 300 -n -f 587 -l 600";
+static const char *P_FLUTE = "587:0.40 740:0.40 880:0.40 784:0.30 740:0.30 587:0.60";
+static const char *H_AMEN =
+    "beep -f 523 -l 200 -n -f 587 -l 200 -n -f 659 -l 200 -n -f 784 -l 200 "
+    "-n -f 880 -l 400 -n -f 784 -l 200 -n -f 1047 -l 600";
+static const char *P_AMEN = "523:0.20 587:0.20 659:0.20 784:0.20 880:0.40 784:0.20 1047:0.60";
 
 static const char *N_TEMPLE = "C5 E5 G5 C6 G5 E5 C5";
 static const char *N_ORACLE = "A4 C5 E5 A5 G5 E5 C5 A4";
 static const char *N_640 = "C5 G4 C5 E5 D5 G5 E5 C6";
+static const char *N_DESERT = "E4 G4 A4 B4 A4 G4 E4";
+static const char *N_FLUTE = "D5 F#5 A5 G5 F#5 D5";
+static const char *N_AMEN = "C5 D5 E5 G5 A5 G5 C6";
 
 static GtkWidget *now_label = NULL;
+static GtkWidget *vol_scale = NULL;
+
+static void play_hymn(const char *beep, const char *pairs) {
+    int b = backend();
+    if (b == 2) {
+        double v = gtk_range_get_value(GTK_RANGE(vol_scale)) / 100.0;
+        char cmd[1024];
+        snprintf(cmd, sizeof(cmd),
+            "for p in %s; do play -q -v %.2f -n synth ${p##*:} sine ${p%%:*}; done",
+            pairs, v);
+        launch_bg(cmd);
+    } else if (b == 1) {
+        launch_bg(beep);
+    } else {
+        gtk_label_set_text(GTK_LABEL(now_label),
+            T("No sound backend (install sox or beep).",
+              "Ses altyapısı yok (sox ya da beep kur)."));
+    }
+}
 
 /* ALI shared look (1.3.4): /usr/share/ali/ali-style.css, silent fallback. */
 static void ali_style(void) {
@@ -56,37 +103,43 @@ static void ali_style(void) {
 static void on_play(GtkButton *b, gpointer u) {
     (void)b;
     const char **h = (const char **)u;
-    launch_bg(h[0]);
+    play_hymn(h[0], h[1]);
     char buf[256];
-    snprintf(buf, sizeof(buf), "%s\n%s", T("Now playing:", "Şimdi çalıyor:"), h[1]);
+    snprintf(buf, sizeof(buf), "%s\n%s", T("Now playing:", "Şimdi çalıyor:"), h[2]);
     gtk_label_set_text(GTK_LABEL(now_label), buf);
 }
 
 static void on_stop(GtkButton *b, gpointer u) {
     (void)b; (void)u;
-    system("pkill -x beep 2>/dev/null");
+    system("pkill -x beep 2>/dev/null; pkill -x play 2>/dev/null");
     gtk_label_set_text(GTK_LABEL(now_label), T("Stopped.", "Durduruldu."));
 }
 
 static void on_test(GtkButton *b, gpointer u) {
     (void)b; (void)u;
-    launch_bg("beep -f 880 -l 200");
+    int bk = backend();
+    if (bk == 2) launch_bg("play -q -n synth 0.2 sine 880");
+    else if (bk == 1) launch_bg("beep -f 880 -l 200");
     gtk_label_set_text(GTK_LABEL(now_label),
-        T("If you heard a beep, hymns will sing.\nIf not, this machine has no PC speaker.",
-          "Bip duyduysan ilahiler çalar.\nDuymadıysan bu makinede PC hoparlörü yok."));
+        bk ? T("Backend: real audio. If silent, check volume.",
+               "Altyapı: gerçek ses. Sessizse sesi kontrol et.")
+            : T("No backend. Install sox.",
+                "Altyapı yok. sox kur."));
 }
 
-static GtkWidget *hymn_row(const char *title, const char *cmd, const char *notes) {
+static GtkWidget *hymn_row(const char *title, const char *beep, const char *pairs, const char *notes) {
     GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
     GtkWidget *l = gtk_label_new(title);
     gtk_widget_set_size_request(l, 160, -1);
     gtk_label_set_xalign(GTK_LABEL(l), 0.0);
     gtk_box_pack_start(GTK_BOX(box), l, FALSE, FALSE, 0);
-    static const char *sets[3][2];
+    static const char *sets[6][3];
     static int idx = 0;
-    sets[idx][0] = cmd; sets[idx][1] = notes;
+    if (idx < 6) {
+        sets[idx][0] = beep; sets[idx][1] = pairs; sets[idx][2] = notes;
+    }
     GtkWidget *b = gtk_button_new_with_label(T("Play", "Çal"));
-    g_signal_connect(b, "clicked", G_CALLBACK(on_play), (gpointer)sets[idx]);
+    g_signal_connect(b, "clicked", G_CALLBACK(on_play), (gpointer)sets[idx < 6 ? idx : 5]);
     gtk_box_pack_start(GTK_BOX(box), b, TRUE, TRUE, 0);
     idx++;
     return box;
@@ -106,7 +159,7 @@ int main(int argc, char **argv) {
     GtkWidget *win = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(win), T("ALI Hymns", "ALI İlahiler"));
     gtk_window_set_icon_name(GTK_WINDOW(win), "ali-hymns");
-    gtk_window_set_default_size(GTK_WINDOW(win), 420, 300);
+    gtk_window_set_default_size(GTK_WINDOW(win), 460, 520);
     gtk_window_set_position(GTK_WINDOW(win), GTK_WIN_POS_CENTER);
     g_signal_connect(win, "destroy", G_CALLBACK(gtk_main_quit), NULL);
 
@@ -120,9 +173,20 @@ int main(int argc, char **argv) {
           "<b>ALI İlahiler</b>\nTempleOS anısına chiptune'lar (özgün)."));
     gtk_box_pack_start(GTK_BOX(box), head, FALSE, FALSE, 0);
 
-    gtk_box_pack_start(GTK_BOX(box), hymn_row("Temple Morning", H_TEMPLE, N_TEMPLE), FALSE, FALSE, 0);
-    gtk_box_pack_start(GTK_BOX(box), hymn_row("Oracle's Dance", H_ORACLE, N_ORACLE), FALSE, FALSE, 0);
-    gtk_box_pack_start(GTK_BOX(box), hymn_row("640x480", H_640, N_640), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), hymn_row("Temple Morning", H_TEMPLE, P_TEMPLE, N_TEMPLE), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), hymn_row("Oracle's Dance", H_ORACLE, P_ORACLE, N_ORACLE), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), hymn_row("640x480", H_640, P_640, N_640), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), hymn_row("Desert Walk", H_DESERT, P_DESERT, N_DESERT), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), hymn_row("Shepherd's Flute", H_FLUTE, P_FLUTE, N_FLUTE), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), hymn_row("Amen", H_AMEN, P_AMEN, N_AMEN), FALSE, FALSE, 0);
+
+    GtkWidget *vrow = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+    GtkWidget *vl = gtk_label_new(T("Volume:", "Ses:"));
+    gtk_box_pack_start(GTK_BOX(vrow), vl, FALSE, FALSE, 0);
+    vol_scale = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0, 100, 5);
+    gtk_range_set_value(GTK_RANGE(vol_scale), 80);
+    gtk_box_pack_start(GTK_BOX(vrow), vol_scale, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(box), vrow, FALSE, FALSE, 0);
 
     GtkWidget *row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
     GtkWidget *bs = gtk_button_new_with_label(T("Stop", "Durdur"));

@@ -1,4 +1,4 @@
-# ALI Linux 1.3.4 - Debian trixie based, XFCE, amd64
+# ALI Linux 1.3.5 - Debian trixie based, XFCE, amd64
 
 Learning project. Visible rebrand only - underneath 100% Debian.
 
@@ -35,6 +35,7 @@ Learning project. Visible rebrand only - underneath 100% Debian.
 - 1.3.2 - (staged, NO PUSH until 1.3.9) ALI-everywhere sweep, ltask true daemon names, Oracle security daemon (verdicts+lots)
 - 1.3.3 - (staged, NO PUSH until 1.3.9) Controllers: ltask Services tab, Center firewall, Oracle pings, zram, wallpaper rotation
 - 1.3.4 - (staged, NO PUSH until 1.3.9) GUI rehaul: shared dark theme, Center sidebar, per-app icons, ltask palette, Welcome banner
+- 1.3.5 - (staged, NO PUSH until 1.3.9) Hymns v2 (real audio + 3 songs), ltask Startup tab, Notepad v2 (TR+find), ali-backup, boot report
 
 ## Push checklist (1.3.9 push - DO NOT PUSH BEFORE 1.3.9)
 ```powershell

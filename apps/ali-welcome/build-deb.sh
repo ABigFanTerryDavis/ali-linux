@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 # Build ali-welcome .deb for Debian trixie amd64
-VER=1.3.4
+VER=1.3.5
 rm -rf build
 mkdir -p build/DEBIAN build/usr/bin build/usr/share/applications build/usr/share/icons/hicolor/scalable/apps
 make

@@ -26,7 +26,7 @@ static const char *T(const char *en, const char *tr) { return LANG_TR ? tr : en;
 
 static void read_os_pretty(char *out, size_t n) {
     FILE *f = fopen("/etc/os-release", "r");
-    snprintf(out, n, "ALI Linux 1.3.4");
+    snprintf(out, n, "ALI Linux 1.3.5");
     if (!f) return;
     char line[256];
     while (fgets(line, sizeof(line), f)) {
@@ -157,6 +157,11 @@ static const char *build_status_text(void) {
 static void on_status_refresh(GtkButton *b, gpointer u) {
     (void)b;
     gtk_label_set_text(GTK_LABEL(u), build_status_text());
+}
+
+static void on_bootreport_clicked(GtkButton *b, gpointer u) {
+    (void)b; (void)u;
+    launch_async("x-terminal-emulator -e 'systemd-analyze 2>/dev/null; echo; systemd-analyze blame 2>/dev/null | head -15; echo; read -n1 -p \"press any key\"'");
 }
 
 /* --- Sentinel (IDS alerts + IPS blocks) --- */
@@ -395,6 +400,9 @@ int main(int argc, char **argv) {
         GtkWidget *b = gtk_button_new_with_label(T("Refresh", "Yenile"));
         g_signal_connect(b, "clicked", G_CALLBACK(on_status_refresh), l);
         gtk_box_pack_start(GTK_BOX(box), b, FALSE, FALSE, 0);
+        GtkWidget *bb = gtk_button_new_with_label(T("Boot Report", "Açılış Raporu"));
+        g_signal_connect(bb, "clicked", G_CALLBACK(on_bootreport_clicked), NULL);
+        gtk_box_pack_start(GTK_BOX(box), bb, FALSE, FALSE, 0);
         stack_page(stack, box, "status", T("Status", "Durum"));
     }
 
@@ -458,7 +466,7 @@ int main(int argc, char **argv) {
         GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
         gtk_container_set_border_width(GTK_CONTAINER(box), 16);
         char about[512];
-        snprintf(about, sizeof(about), "ALI Linux 1.3.4\nXFCE - amd64.\n\nALI Center 1.3.4 - C + GTK3 (+ Sentinel Security tab).");
+        snprintf(about, sizeof(about), "ALI Linux 1.3.5\nXFCE - amd64.\n\nALI Center 1.3.5 - C + GTK3 (+ Sentinel Security tab).");
         char *vs = read_file_all("/run/templeos-oracle");
         if (vs) {
             char *vl = strstr(vs, "verse=");
