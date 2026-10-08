@@ -1,0 +1,61 @@
+#!/bin/sh
+# ali-mirrors - pick the fastest Debian mirror and switch apt to it.
+# Measures fetch time of trixie InRelease (TR mirrors first for us).
+# Handles both DEB822 (trixie default) and one-line sources.
+# usage: sudo ali-mirrors
+# Turkish: ALI_LANG=tr
+set -u
+
+TR() {
+    if [ "${ALI_LANG:-}" = "tr" ] || [ "${ALI_LANG:-}" = "TR" ]; then printf '%s' "$2"; else printf '%s' "$1"; fi
+}
+
+if [ "$(id -u)" -ne 0 ]; then
+    echo "$(TR 'run as root: sudo ali-mirrors' 'root olarak çalıştır: sudo ali-mirrors')" >&2
+    exit 1
+fi
+
+MIRRORS="http://ftp.tr.debian.org/debian https://deb.debian.org/debian http://mirror.leaseweb.com/debian https://mirrors.edge.kernel.org/debian"
+TEST="dists/trixie/InRelease"
+
+best=""; best_t=999
+echo "$(TR 'Probing mirrors (TR first)...' 'Aynalar deneniyor (önce TR)...')"
+for m in $MIRRORS; do
+    r=$(curl -o /dev/null -s -w '%{time_total} %{http_code}' --max-time 8 "$m/$TEST" 2>/dev/null)
+    t=$(printf '%s' "$r" | awk '{print $1}')
+    code=$(printf '%s' "$r" | awk '{print $2}')
+    case "$t" in ''|*[!0-9.]*) t=999 ;; esac
+    if [ "$code" = "200" ]; then
+        echo "  ${t}s  $m"
+        faster=$(awk "BEGIN {print ($t < $best_t)}")
+        if [ "$faster" = "1" ]; then best="$m"; best_t="$t"; fi
+    else
+        echo "  $(TR 'unreachable' 'ulaşılamadı')  $m"
+    fi
+done
+
+[ -n "$best" ] || { echo "$(TR 'No mirror reachable, keeping current.' 'Hiçbir aynaya ulaşılamadı, mevcut korunuyor.')" >&2; exit 1; }
+echo "$(TR "Winner: $best (${best_t}s)" "Kazanan: $best (${best_t}s)")"
+
+# rewrite URIs in DEB822 files, else drop a one-line list
+done_any=0
+for f in /etc/apt/sources.list.d/*.sources; do
+    [ -f "$f" ] || continue
+    if grep -q '^URIs:' "$f" 2>/dev/null; then
+        cp "$f" "$f.ali-bak"
+        sed -i "s|^URIs:.*|URIs: $best|" "$f"
+        done_any=1
+    fi
+done
+if [ "$done_any" = "0" ]; then
+    if [ -f /etc/apt/sources.list ]; then
+        cp /etc/apt/sources.list /etc/apt/sources.list.ali-bak
+        sed -i -E "s|https?://[^ /]+/debian|$best|g" /etc/apt/sources.list
+        done_any=1
+    else
+        printf 'deb %s trixie main contrib non-free non-free-firmware\n' "$best" > /etc/apt/sources.list.d/ali-mirror.list
+        done_any=1
+    fi
+fi
+echo "$(TR 'Sources updated (backup: *.ali-bak). Refreshing...' 'Kaynaklar güncellendi (yedek: *.ali-bak). Listeler tazeleniyor...')"
+apt-get update

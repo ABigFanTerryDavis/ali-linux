@@ -72,7 +72,7 @@ if [ ! -d "$SRC/$INCLUDES/config/includes.chroot/usr/bin" ] && [ -d "$SRC/config
 fi
 INC="$SRC/$INCLUDES/config/includes.chroot"
 [ "$INCLUDES" = "." ] && INC="$SRC/config/includes.chroot"
-for f in ali-update ali-info ali-perf ali-normal ali-update-version ali-terminal ali-backup odysseus sentinel ali-sentinel terrydavis templeos ali-oracle ali-retro terry-dice ali-passgen ali-vault oracle; do
+for f in ali-update ali-info ali-perf ali-normal ali-mirrors ali-update-version ali-terminal ali-backup odysseus sentinel ali-sentinel terrydavis templeos ali-oracle ali-retro terry-dice ali-passgen ali-vault oracle; do
   if [ -f "$INC/usr/bin/$f" ]; then
     sudo install -m755 "$INC/usr/bin/$f" /usr/bin/$f
   elif [ -f "$SRC/apps/odysseus/$f" ]; then

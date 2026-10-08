@@ -13,6 +13,29 @@ static const char *T(const char *en, const char *tr) { return LANG_TR ? tr : en;
 static GtkWidget *textview;
 static char *current_file = NULL;
 static char *last_find = NULL;
+static GtkWidget *notebook = NULL;
+
+static GtkWidget *current_page(void) {
+    if (!notebook) return NULL;
+    return gtk_notebook_get_nth_page(GTK_NOTEBOOK(notebook),
+        gtk_notebook_get_current_page(GTK_NOTEBOOK(notebook)));
+}
+
+static void sync_current(void) {
+    GtkWidget *page = current_page();
+    if (!page) { textview = NULL; return; }
+    textview = g_object_get_data(G_OBJECT(page), "ali-view");
+    char *f = g_object_get_data(G_OBJECT(page), "ali-file");
+    free(current_file);
+    current_file = f ? strdup(f) : NULL;
+}
+
+static void set_page_title(GtkWidget *page) {
+    char *f = g_object_get_data(G_OBJECT(page), "ali-file");
+    const char *base = f ? strrchr(f, '/') : NULL;
+    gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(notebook), page,
+        (f && base) ? base + 1 : (f ? f : T("Untitled", "Başlıksız")));
+}
 
 /* ALI shared look (1.3.4): /usr/share/ali/ali-style.css, silent fallback. */
 static void ali_style(void) {
@@ -31,6 +54,18 @@ static void set_title(GtkWindow *win) {
     else
         snprintf(t, sizeof(t), T("Untitled - ALI Notepad", "Başlıksız - ALI Notepad"));
     gtk_window_set_title(win, t);
+}
+
+static void set_current_file(GtkWindow *win, const char *path) {
+    GtkWidget *page = current_page();
+    if (page) {
+        g_object_set_data_full(G_OBJECT(page), "ali-file",
+            path ? g_strdup(path) : NULL, g_free);
+        set_page_title(page);
+    }
+    free(current_file);
+    current_file = path ? strdup(path) : NULL;
+    set_title(win);
 }
 
 static void load_file(const char *path, GtkWindow *win) {
@@ -53,9 +88,7 @@ static void load_file(const char *path, GtkWindow *win) {
     GtkTextBuffer *tb = gtk_text_view_get_buffer(GTK_TEXT_VIEW(textview));
     gtk_text_buffer_set_text(tb, buf, -1);
     free(buf);
-    free(current_file);
-    current_file = g_strdup(path);
-    set_title(win);
+    set_current_file(win, path);
 }
 
 static int save_file(const char *path, GtkWindow *win) {
@@ -75,19 +108,39 @@ static int save_file(const char *path, GtkWindow *win) {
     fwrite(txt, 1, strlen(txt), f);
     fclose(f);
     g_free(txt);
-    free(current_file);
-    current_file = g_strdup(path);
-    set_title(win);
+    set_current_file(win, path);
+    GtkTextBuffer *tb2 = gtk_text_view_get_buffer(GTK_TEXT_VIEW(textview));
+    gtk_text_buffer_set_modified(tb2, FALSE);
     return 1;
+}
+
+static void new_tab(GtkWindow *win, const char *path) {
+    GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll),
+        GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+    GtkWidget *view = gtk_text_view_new();
+    gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(view), GTK_WRAP_WORD_CHAR);
+    gtk_container_add(GTK_CONTAINER(scroll), view);
+    g_object_set_data(G_OBJECT(scroll), "ali-view", view);
+    textview = view;
+    gtk_notebook_append_page(GTK_NOTEBOOK(notebook), scroll,
+        gtk_label_new(T("Untitled", "Başlıksız")));
+    gtk_widget_show_all(scroll);
+    gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook),
+        gtk_notebook_get_n_pages(GTK_NOTEBOOK(notebook)) - 1);
+    if (path) load_file(path, win);
+    else set_current_file(win, NULL);
+}
+
+static void on_switch(GtkNotebook *nb, GtkWidget *page, guint n, gpointer u) {
+    (void)nb; (void)page; (void)n;
+    sync_current();
+    set_title(GTK_WINDOW(u));
 }
 
 static void on_new(GtkMenuItem *m, gpointer u) {
     (void)m;
-    GtkWindow *win = GTK_WINDOW(u);
-    GtkTextBuffer *tb = gtk_text_view_get_buffer(GTK_TEXT_VIEW(textview));
-    gtk_text_buffer_set_text(tb, "", -1);
-    free(current_file); current_file = NULL;
-    set_title(win);
+    new_tab(GTK_WINDOW(u), NULL);
 }
 
 static void on_open(GtkMenuItem *m, gpointer u) {
@@ -98,10 +151,34 @@ static void on_open(GtkMenuItem *m, gpointer u) {
         T("_Cancel", "_Vazgeç"), GTK_RESPONSE_CANCEL, T("_Open", "_Aç"), GTK_RESPONSE_ACCEPT, NULL);
     if (gtk_dialog_run(GTK_DIALOG(d)) == GTK_RESPONSE_ACCEPT) {
         char *p = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(d));
-        load_file(p, win);
+        new_tab(win, p);
         g_free(p);
     }
     gtk_widget_destroy(d);
+}
+
+static void on_close_tab(GtkMenuItem *m, gpointer u) {
+    (void)m;
+    GtkWindow *win = GTK_WINDOW(u);
+    GtkWidget *page = current_page();
+    if (!page) return;
+    GtkTextBuffer *tb = gtk_text_view_get_buffer(GTK_TEXT_VIEW(textview));
+    if (textview && gtk_text_buffer_get_modified(tb)) {
+        GtkWidget *d = gtk_message_dialog_new(win, GTK_DIALOG_MODAL,
+            GTK_MESSAGE_QUESTION, GTK_BUTTONS_YES_NO,
+            T("Close without saving?", "Kaydetmeden kapatılsın mı?"));
+        int r = gtk_dialog_run(GTK_DIALOG(d));
+        gtk_widget_destroy(d);
+        if (r != GTK_RESPONSE_YES) return;
+    }
+    int n = gtk_notebook_page_num(GTK_NOTEBOOK(notebook), page);
+    gtk_notebook_remove_page(GTK_NOTEBOOK(notebook), n);
+    if (gtk_notebook_get_n_pages(GTK_NOTEBOOK(notebook)) == 0)
+        new_tab(win, NULL);
+    else {
+        sync_current();
+        set_title(win);
+    }
 }
 
 static void on_save(GtkMenuItem *m, gpointer u) {
@@ -207,8 +284,7 @@ int main(int argc, char **argv) {
     gtk_init(&argc, &argv);
     ali_style();
 
-    /* open file from command line: ali-notepad file.txt */
-    const char *start_file = (argc > 1) ? argv[1] : NULL;
+    /* open file from command line: ali-notepad file.txt (flags skipped below) */
 
     GtkWidget *win = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_icon_name(GTK_WINDOW(win), "ali-notepad");
@@ -238,6 +314,7 @@ int main(int argc, char **argv) {
     GtkWidget *i_save = gtk_menu_item_new_with_label(T("Save", "Kaydet"));
     GtkWidget *i_saveas = gtk_menu_item_new_with_label(T("Save As...", "Farklı Kaydet..."));
     GtkWidget *i_quit = gtk_menu_item_new_with_label(T("Quit", "Çık"));
+    GtkWidget *i_close = gtk_menu_item_new_with_label(T("Close Tab", "Sekmeyi Kapat"));
     GtkWidget *i_find = gtk_menu_item_new_with_label(T("Find...", "Bul..."));
     GtkWidget *i_next = gtk_menu_item_new_with_label(T("Find Next", "Sonrakini Bul"));
     GtkWidget *i_about = gtk_menu_item_new_with_label(T("About", "Hakkında"));
@@ -246,6 +323,7 @@ int main(int argc, char **argv) {
     gtk_menu_shell_append(GTK_MENU_SHELL(fmenu), i_save);
     gtk_menu_shell_append(GTK_MENU_SHELL(fmenu), i_saveas);
     gtk_menu_shell_append(GTK_MENU_SHELL(fmenu), gtk_separator_menu_item_new());
+    gtk_menu_shell_append(GTK_MENU_SHELL(fmenu), i_close);
     gtk_menu_shell_append(GTK_MENU_SHELL(fmenu), i_quit);
     gtk_menu_shell_append(GTK_MENU_SHELL(emenu), i_find);
     gtk_menu_shell_append(GTK_MENU_SHELL(emenu), i_next);
@@ -257,21 +335,38 @@ int main(int argc, char **argv) {
     g_signal_connect(i_open, "activate", G_CALLBACK(on_open), win);
     g_signal_connect(i_save, "activate", G_CALLBACK(on_save), win);
     g_signal_connect(i_saveas, "activate", G_CALLBACK(on_saveas), win);
+    g_signal_connect(i_close, "activate", G_CALLBACK(on_close_tab), win);
     g_signal_connect(i_quit, "activate", G_CALLBACK(gtk_main_quit), NULL);
     g_signal_connect(i_about, "activate", G_CALLBACK(on_about), win);
 
     gtk_box_pack_start(GTK_BOX(vbox), menubar, FALSE, FALSE, 0);
 
-    GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
-    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll),
-        GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-    textview = gtk_text_view_new();
-    gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(textview), GTK_WRAP_WORD_CHAR);
-    gtk_container_add(GTK_CONTAINER(scroll), textview);
-    gtk_box_pack_start(GTK_BOX(vbox), scroll, TRUE, TRUE, 0);
+    notebook = gtk_notebook_new();
+    gtk_notebook_set_scrollable(GTK_NOTEBOOK(notebook), TRUE);
+    g_signal_connect(notebook, "switch-page", G_CALLBACK(on_switch), win);
+    gtk_box_pack_start(GTK_BOX(vbox), notebook, TRUE, TRUE, 0);
 
-    set_title(GTK_WINDOW(win));
-    if (start_file) load_file(start_file, GTK_WINDOW(win));
+    /* accelerators: Ctrl+N/T/O/S/W/F */
+    GtkAccelGroup *ag = gtk_accel_group_new();
+    gtk_window_add_accel_group(GTK_WINDOW(win), ag);
+    gtk_widget_add_accelerator(i_new, "activate", ag, GDK_KEY_n, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
+    gtk_widget_add_accelerator(i_new, "activate", ag, GDK_KEY_t, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
+    gtk_widget_add_accelerator(i_open, "activate", ag, GDK_KEY_o, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
+    gtk_widget_add_accelerator(i_save, "activate", ag, GDK_KEY_s, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
+    gtk_widget_add_accelerator(i_close, "activate", ag, GDK_KEY_w, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
+    gtk_widget_add_accelerator(i_find, "activate", ag, GDK_KEY_f, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
+
+    /* one tab per file argument (ali-notepad a.txt b.txt), else blank */
+    {
+        int opened = 0;
+        for (int i = 1; i < argc; i++) {
+            if (strcmp(argv[i], "--tr") == 0) continue;
+            if (argv[i][0] == '-') continue;
+            new_tab(GTK_WINDOW(win), argv[i]);
+            opened++;
+        }
+        if (!opened) new_tab(GTK_WINDOW(win), NULL);
+    }
 
     gtk_widget_show_all(win);
     gtk_main();

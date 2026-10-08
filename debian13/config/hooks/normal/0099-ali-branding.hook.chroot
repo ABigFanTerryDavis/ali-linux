@@ -4,10 +4,10 @@ set -e
 # Overwrites base-files on every build so branding survives upgrades in the live system
 
 cat > /etc/os-release <<'EOF'
-PRETTY_NAME="ALI Linux 1.3.6"
+PRETTY_NAME="ALI Linux 1.3.7"
 NAME="ALI Linux"
-VERSION_ID="1.3.6"
-VERSION="1.3.6"
+VERSION_ID="1.3.7"
+VERSION="1.3.7"
 ID=ali
 ID_LIKE=debian
 HOME_URL="https://github.com/"
@@ -16,9 +16,9 @@ EOF
 
 cat > /etc/lsb-release <<'EOF'
 DISTRIB_ID="ALI Linux"
-DISTRIB_RELEASE=1.3.6
+DISTRIB_RELEASE=1.3.7
 DISTRIB_CODENAME=ali
-DISTRIB_DESCRIPTION="ALI Linux 1.3.6"
+DISTRIB_DESCRIPTION="ALI Linux 1.3.7"
 EOF
 
 echo "ali" > /etc/hostname
@@ -30,9 +30,9 @@ ff02::1 ip6-allnodes
 ff02::2 ip6-allrouters
 EOF
 
-echo "ALI Linux 1.3.6 \\n \\l" > /etc/issue
-echo "ALI Linux 1.3.6" > /etc/issue.net
-echo "ALI Linux 1.3.6" > /etc/motd
+echo "ALI Linux 1.3.7 \\n \\l" > /etc/issue
+echo "ALI Linux 1.3.7" > /etc/issue.net
+echo "ALI Linux 1.3.7" > /etc/motd
 
 # LightDM greeter branding if present
 if [ -d /etc/lightdm ]; then
@@ -57,7 +57,7 @@ cat > /usr/share/backgrounds/ali/ali-wallpaper.svg <<'EOF'
 EOF
 
 # ALI Terminal + commands visible rebrand - wrappers come from includes.chroot
-chmod +x /usr/bin/ali-terminal /usr/bin/ali-update /usr/bin/ali-info /usr/bin/ali-perf /usr/bin/ali-normal /usr/bin/ali-update-version /usr/bin/ali-backup /usr/bin/ali-sentinel /usr/bin/odysseus /usr/bin/sentinel /usr/bin/terrydavis /usr/bin/templeos /usr/bin/ali-oracle /usr/bin/ali-retro /usr/bin/terry-dice /usr/bin/ali-passgen /usr/bin/ali-vault /usr/bin/oracle 2>/dev/null || true
+chmod +x /usr/bin/ali-terminal /usr/bin/ali-update /usr/bin/ali-info /usr/bin/ali-perf /usr/bin/ali-normal /usr/bin/ali-mirrors /usr/bin/ali-update-version /usr/bin/ali-backup /usr/bin/ali-sentinel /usr/bin/odysseus /usr/bin/sentinel /usr/bin/terrydavis /usr/bin/templeos /usr/bin/ali-oracle /usr/bin/ali-retro /usr/bin/terry-dice /usr/bin/ali-passgen /usr/bin/ali-vault /usr/bin/oracle 2>/dev/null || true
 
 # Odysseus - enable first-up last-down task (symlink; git can't store it)
 mkdir -p /etc/systemd/system/sysinit.target.wants
@@ -95,7 +95,7 @@ EOF
 if [ -f /etc/bash.bashrc ] && ! grep -q "ali-safe-rm.sh" /etc/bash.bashrc 2>/dev/null; then
   echo '[ -f /etc/ali-safe-rm.sh ] && . /etc/ali-safe-rm.sh' >> /etc/bash.bashrc || true
 fi
-# ALI terminal billboard - fastfetch on every interactive terminal (1.3.6)
+# ALI terminal billboard - fastfetch on every interactive terminal (1.3.7)
 if [ -f /etc/bash.bashrc ] && ! grep -q "ALI terminal billboard" /etc/bash.bashrc 2>/dev/null; then
   cat >> /etc/bash.bashrc <<'EOF' || true
 # ALI terminal billboard
@@ -185,7 +185,7 @@ cat > /usr/share/ali/fastfetch-logo.txt <<'EOF'
  / ___ |/ /___ / /
 /_/  |_/_____/___/
 
-ALI Linux 1.3.6 - XFCE
+ALI Linux 1.3.7 - XFCE
 EOF
 cat > /etc/skel/.config/fastfetch/config.jsonc <<'EOF'
 {

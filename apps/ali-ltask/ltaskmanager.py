@@ -82,6 +82,9 @@ TRMAP = {
     "Load": "Yük",
     "Active": "Etkin",
     "Sub": "Alt",
+    "Boot": "Açılışta",
+    "Boot On": "Açılışta Aç",
+    "Boot Off": "Açılışta Kapat",
     "Startup": "Başlangıç",
     "Application": "Uygulama",
     "Enabled": "Etkin",
@@ -311,11 +314,11 @@ class ServicesWidget(QWidget):
         title.setStyleSheet("font-size: 18px; font-weight: bold; padding: 4px;")
         layout.addWidget(title)
 
-        self.table = QTableWidget(0, 5)
-        self.table.setHorizontalHeaderLabels([_("Service"), _("Load"), _("Active"), _("Sub"), _("Description")])
+        self.table = QTableWidget(0, 6)
+        self.table.setHorizontalHeaderLabels([_("Service"), _("Load"), _("Active"), _("Sub"), _("Boot"), _("Description")])
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Interactive)
-        self.table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
-        self.table.setColumnWidth(0, 220)
+        self.table.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeMode.Stretch)
+        self.table.setColumnWidth(0, 200)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.table.setAlternatingRowColors(True)
@@ -334,6 +337,12 @@ class ServicesWidget(QWidget):
         self.restart_btn = QPushButton(_("Restart"))
         self.restart_btn.clicked.connect(lambda: self.act("restart"))
         row.addWidget(self.restart_btn)
+        self.enable_btn = QPushButton(_("Boot On"))
+        self.enable_btn.clicked.connect(lambda: self.act("enable"))
+        row.addWidget(self.enable_btn)
+        self.disable_btn = QPushButton(_("Boot Off"))
+        self.disable_btn.clicked.connect(lambda: self.act("disable"))
+        row.addWidget(self.disable_btn)
         layout.addLayout(row)
 
         self.status = QLabel("")
@@ -351,10 +360,21 @@ class ServicesWidget(QWidget):
 
     def refresh(self):
         self.table.setRowCount(0)
+        try:
+            ef = subprocess.run(["systemctl", "list-unit-files", "--type=service",
+                                 "--no-legend", "--plain"],
+                                capture_output=True, text=True, timeout=10)
+            enabled = {}
+            for line in ef.stdout.splitlines():
+                p = line.split()
+                if len(p) >= 2 and p[0].endswith(".service"):
+                    enabled[p[0]] = p[1]
+        except Exception:
+            enabled = {}
         rows = []
         for unit, desc in ALI_SERVICES:
             load, active, sub, _d = self._unit_state(unit)
-            rows.append((unit, load, active, sub, desc))
+            rows.append((unit, load, active, sub, enabled.get(unit, "?"), desc))
         try:
             out = subprocess.run(["systemctl", "list-units", "--type=service",
                                   "--all", "--no-legend", "--plain"],
@@ -365,13 +385,13 @@ class ServicesWidget(QWidget):
                     if parts[0] in [u for u, _d in ALI_SERVICES]:
                         continue
                     desc = parts[4] if len(parts) > 4 else ""
-                    rows.append((parts[0], parts[1], parts[2], parts[3], desc))
+                    rows.append((parts[0], parts[1], parts[2], parts[3], enabled.get(parts[0], "?"), desc))
         except Exception as e:
             self.status.setText(f"{_('Error')}: {e}")
             return
         self.table.setRowCount(len(rows))
-        for i, (u, lo, ac, su, de) in enumerate(rows):
-            for j, val in enumerate([u, lo, ac, su, de]):
+        for i, (u, lo, ac, su, bo, de) in enumerate(rows):
+            for j, val in enumerate([u, lo, ac, su, bo, de]):
                 it = QTableWidgetItem(val)
                 it.setFlags(it.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 if j == 2:
@@ -379,6 +399,8 @@ class ServicesWidget(QWidget):
                         it.setForeground(QBrush(QColor("darkgreen")))
                     elif ac in ("failed", "inactive"):
                         it.setForeground(QBrush(QColor("red")))
+                if j == 4 and bo == "enabled":
+                    it.setForeground(QBrush(QColor("darkgreen")))
                 self.table.setItem(i, j, it)
         self.status.setText(f"{len(rows)} {_('Services').lower()}" if not TR else f"{len(rows)} hizmet")
 

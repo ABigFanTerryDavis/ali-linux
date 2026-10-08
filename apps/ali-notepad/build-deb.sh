@@ -1,6 +1,6 @@
 #!/bin/sh
 set -e
-VER=1.3.6
+VER=1.3.7
 rm -rf build
 mkdir -p build/DEBIAN build/usr/bin build/usr/share/applications build/usr/share/icons/hicolor/scalable/apps
 make

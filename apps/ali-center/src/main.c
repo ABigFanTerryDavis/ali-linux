@@ -27,7 +27,7 @@ static char *run_capture(const char *cmd);
 
 static void read_os_pretty(char *out, size_t n) {
     FILE *f = fopen("/etc/os-release", "r");
-    snprintf(out, n, "ALI Linux 1.3.6");
+    snprintf(out, n, "ALI Linux 1.3.7");
     if (!f) return;
     char line[256];
     while (fgets(line, sizeof(line), f)) {
@@ -48,6 +48,21 @@ static void read_os_pretty(char *out, size_t n) {
 static void on_update_clicked(GtkButton *b, gpointer u) {
     (void)b; (void)u;
     launch_async("x-terminal-emulator -e 'sudo apt update && sudo apt full-upgrade; echo DONE - press Enter; read x'");
+}
+
+static void on_perf_clicked(GtkButton *b, gpointer u) {
+    (void)b;
+    launch_async("x-terminal-emulator -e 'sudo ali-perf; echo; read -n1 -p \"press any key\"'");
+}
+
+static void on_normal_clicked(GtkButton *b, gpointer u) {
+    (void)b;
+    launch_async("x-terminal-emulator -e 'sudo ali-normal; echo; read -n1 -p \"press any key\"'");
+}
+
+static void on_mirror_clicked(GtkButton *b, gpointer u) {
+    (void)b; (void)u;
+    launch_async("x-terminal-emulator -e 'sudo ali-mirrors; echo; read -n1 -p \"press any key\"'");
 }
 
 static void on_sysinfo_clicked(GtkButton *b, gpointer u) {
@@ -393,6 +408,27 @@ int main(int argc, char **argv) {
         g_signal_connect(b2, "clicked", G_CALLBACK(on_update_clicked), NULL);
         gtk_box_pack_start(GTK_BOX(box), b2, FALSE, FALSE, 0);
 
+        /* Governor readout + Perf/Normal + fastest mirror */
+        {
+            char *gov = run_capture("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>/dev/null");
+            char govline[160];
+            snprintf(govline, sizeof(govline), "%s: %s",
+                T("Governor", "Yönetici"), gov ? gov : T("(no cpufreq)", "(cpufreq yok)"));
+            GtkWidget *gl = gtk_label_new(govline);
+            gtk_box_pack_start(GTK_BOX(box), gl, FALSE, FALSE, 0);
+            GtkWidget *grow = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+            GtkWidget *bp = gtk_button_new_with_label(T("Performance", "Performans"));
+            g_signal_connect(bp, "clicked", G_CALLBACK(on_perf_clicked), gl);
+            gtk_box_pack_start(GTK_BOX(grow), bp, TRUE, TRUE, 0);
+            GtkWidget *bn = gtk_button_new_with_label(T("Normal", "Normal"));
+            g_signal_connect(bn, "clicked", G_CALLBACK(on_normal_clicked), gl);
+            gtk_box_pack_start(GTK_BOX(grow), bn, TRUE, TRUE, 0);
+            gtk_box_pack_start(GTK_BOX(box), grow, FALSE, FALSE, 0);
+            GtkWidget *bm = gtk_button_new_with_label(T("Fastest Mirror", "En Hızlı Ayna"));
+            g_signal_connect(bm, "clicked", G_CALLBACK(on_mirror_clicked), NULL);
+            gtk_box_pack_start(GTK_BOX(box), bm, FALSE, FALSE, 0);
+        }
+
         GtkWidget *hint = gtk_label_new(T("Keyboard: Turkish (tr) + English supported.\nSwitch with XFCE Panel -> Keyboard applet.",
             "Klavye: Türkçe (tr) + İngilizce desteklenir.\nXFCE Paneli -> Klavye uygulamasıyla değiştir."));
         gtk_box_pack_start(GTK_BOX(box), hint, FALSE, FALSE, 8);
@@ -555,7 +591,7 @@ int main(int argc, char **argv) {
         GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
         gtk_container_set_border_width(GTK_CONTAINER(box), 16);
         char about[512];
-        snprintf(about, sizeof(about), "ALI Linux 1.3.6\nXFCE - amd64.\n\nALI Center 1.3.6 - C + GTK3 (+ Sentinel Security tab).");
+        snprintf(about, sizeof(about), "ALI Linux 1.3.7\nXFCE - amd64.\n\nALI Center 1.3.7 - C + GTK3 (+ Sentinel Security tab).");
         char *vs = read_file_all("/run/templeos-oracle");
         if (vs) {
             char *vl = strstr(vs, "verse=");

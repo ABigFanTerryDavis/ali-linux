@@ -1,6 +1,8 @@
-# ALI Notepad v1 - separate app (C + GTK3)
+# ALI Notepad v2 - separate app (C + GTK3)
 
-Minimal Notepad: New / Open / Save / Save As. Window + dialogs all say ALI Notepad.
+Tabbed notepad: New / Open (each in its own tab) / Save / Save As /
+Close Tab, Find + Find Next, Ctrl+T/O/S/W/F shortcuts, Turkish via
+`--tr` / `ALI_LANG=tr`. Window + dialogs all say ALI Notepad.
 
 ## Build on Debian trixie
 ```bash

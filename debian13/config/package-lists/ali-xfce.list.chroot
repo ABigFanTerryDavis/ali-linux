@@ -34,6 +34,7 @@ zram-tools
 xfconf
 sox
 xprintidle
+preload
 conky-std
 cups
 system-config-printer
