@@ -1,4 +1,4 @@
-# ALI Linux 1.4.0 - Debian trixie based, XFCE, amd64
+# ALI Linux 1.4.1 - Debian trixie based, XFCE, amd64
 
 Learning project. Visible rebrand only - underneath 100% Debian.
 
@@ -41,6 +41,7 @@ Learning project. Visible rebrand only - underneath 100% Debian.
 - 1.3.8 - (staged, PUSHED in 1.3.9) Hardening: pre-push audit, Notepad print, Hymns queue, updater dry-run
 - 1.3.9 - PUSHED: what's-new tour page + Welcome button, full version sweep
 - 1.4.0 - (staged, NO PUSH until 1.4.9) Official-ness: Flatpak+Flathub, 20 man pages, LUKS splash prompt, CLI Turkish mop-up, phone link
+- 1.4.1 - (staged, NO PUSH until 1.4.9) Comfort: Night Light switch, screenshot key, disk tool
 
 ## Push checklist (1.3.9 push - THIS IS IT)
 ```powershell

@@ -27,7 +27,7 @@ static char *run_capture(const char *cmd);
 
 static void read_os_pretty(char *out, size_t n) {
     FILE *f = fopen("/etc/os-release", "r");
-    snprintf(out, n, "ALI Linux 1.4.0");
+    snprintf(out, n, "ALI Linux 1.4.1");
     if (!f) return;
     char line[256];
     while (fgets(line, sizeof(line), f)) {
@@ -96,6 +96,18 @@ static void on_wallpapers_clicked(GtkButton *b, gpointer u) {
     launch_async("thunar /usr/share/backgrounds/ali 2>/dev/null || exo-open /usr/share/backgrounds/ali");
 }
 
+static void on_night_clicked(GtkButton *b, gpointer u) {
+    const char *mode = (const char *)u;
+    char cmd[256];
+    if (strcmp(mode, "auto") == 0)
+        snprintf(cmd, sizeof(cmd), "sudo rm -f /var/lib/terrydavis/night.force");
+    else
+        snprintf(cmd, sizeof(cmd), "echo %s | sudo tee /var/lib/terrydavis/night.force >/dev/null", mode);
+    int rc = system(cmd);
+    (void)rc;
+    launch_async("x-terminal-emulator -e 'sleep 16; echo night updated; read -n1 -p \"press any key\"'");
+}
+
 static void on_terminal_clicked(GtkButton *b, gpointer u) {
     (void)b; (void)u;
     launch_async("xfce4-terminal --title='ALI Terminal'");
@@ -109,6 +121,16 @@ static void on_files_clicked(GtkButton *b, gpointer u) {
 static void on_browser_clicked(GtkButton *b, gpointer u) {
     (void)b; (void)u;
     launch_async("firefox-esr 2>/dev/null || firefox 2>/dev/null || exo-open https://github.com/");
+}
+
+static void on_shot_clicked(GtkButton *b, gpointer u) {
+    (void)b; (void)u;
+    launch_async("xfce4-screenshooter 2>/dev/null || scrot 2>/dev/null || true");
+}
+
+static void on_disk_clicked(GtkButton *b, gpointer u) {
+    (void)b; (void)u;
+    launch_async("x-terminal-emulator -e 'ncdu / 2>/dev/null || du -sh /* 2>/dev/null; echo; read -n1 -p \"press any key\"'");
 }
 
 static char game_buf[256];
@@ -446,6 +468,30 @@ int main(int argc, char **argv) {
         GtkWidget *b = gtk_button_new_with_label(T("Open Wallpapers Folder", "Duvar Kağıtları Klasörünü Aç"));
         g_signal_connect(b, "clicked", G_CALLBACK(on_wallpapers_clicked), NULL);
         gtk_box_pack_start(GTK_BOX(box), b, FALSE, FALSE, 0);
+        /* Night light: status + on/off/auto (terrydavis honors force) */
+        {
+            char *nl = run_capture("pgrep -x redshift >/dev/null 2>&1 && echo on || echo off");
+            char *nf = run_capture("cat /var/lib/terrydavis/night.force 2>/dev/null");
+            char nline[192];
+            snprintf(nline, sizeof(nline), "%s: %s%s%s",
+                T("Night light", "Gece ışığı"),
+                (nl && strcmp(nl, "on") == 0) ? T("ON", "AÇIK") : T("off", "kapalı"),
+                (nf && *nf) ? " (" : "",
+                (nf && *nf) ? (strcmp(nf, "on") == 0 ? T("forced)", "zorla)") : T("held off)", "tutuluyor)")) : "");
+            GtkWidget *nlab = gtk_label_new(nline);
+            gtk_box_pack_start(GTK_BOX(box), nlab, FALSE, FALSE, 0);
+            GtkWidget *nrow = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+            GtkWidget *n1 = gtk_button_new_with_label(T("On", "Aç"));
+            g_signal_connect(n1, "clicked", G_CALLBACK(on_night_clicked), (gpointer)"on");
+            gtk_box_pack_start(GTK_BOX(nrow), n1, TRUE, TRUE, 0);
+            GtkWidget *n2 = gtk_button_new_with_label(T("Off", "Kapat"));
+            g_signal_connect(n2, "clicked", G_CALLBACK(on_night_clicked), (gpointer)"off");
+            gtk_box_pack_start(GTK_BOX(nrow), n2, TRUE, TRUE, 0);
+            GtkWidget *n3 = gtk_button_new_with_label(T("Auto", "Otomatik"));
+            g_signal_connect(n3, "clicked", G_CALLBACK(on_night_clicked), (gpointer)"auto");
+            gtk_box_pack_start(GTK_BOX(nrow), n3, TRUE, TRUE, 0);
+            gtk_box_pack_start(GTK_BOX(box), nrow, FALSE, FALSE, 0);
+        }
         GtkWidget *h = gtk_label_new(T("Tip: right-click Desktop -> Desktop Settings to change wallpaper.",
             "İpucu: duvar kağıdını değiştirmek için Masaüstüne sağ tıkla -> Masaüstü Ayarları."));
         gtk_box_pack_start(GTK_BOX(box), h, FALSE, FALSE, 8);
@@ -465,6 +511,12 @@ int main(int argc, char **argv) {
         GtkWidget *b3 = gtk_button_new_with_label(T("Open Browser", "Tarayıcıyı Aç"));
         g_signal_connect(b3, "clicked", G_CALLBACK(on_browser_clicked), NULL);
         gtk_box_pack_start(GTK_BOX(box), b3, FALSE, FALSE, 0);
+        GtkWidget *b4 = gtk_button_new_with_label(T("Screenshot", "Ekran Görüntüsü"));
+        g_signal_connect(b4, "clicked", G_CALLBACK(on_shot_clicked), NULL);
+        gtk_box_pack_start(GTK_BOX(box), b4, FALSE, FALSE, 0);
+        GtkWidget *b5 = gtk_button_new_with_label(T("Disk Usage", "Disk Kullanımı"));
+        g_signal_connect(b5, "clicked", G_CALLBACK(on_disk_clicked), NULL);
+        gtk_box_pack_start(GTK_BOX(box), b5, FALSE, FALSE, 0);
         /* Game corner: status + auto/on/off cycle */
         {
             GtkWidget *gl = gtk_label_new(NULL);
@@ -591,7 +643,7 @@ int main(int argc, char **argv) {
         GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
         gtk_container_set_border_width(GTK_CONTAINER(box), 16);
         char about[512];
-        snprintf(about, sizeof(about), "ALI Linux 1.4.0\nXFCE - amd64.\n\nALI Center 1.4.0 - C + GTK3 (+ Sentinel Security tab).");
+        snprintf(about, sizeof(about), "ALI Linux 1.4.1\nXFCE - amd64.\n\nALI Center 1.4.1 - C + GTK3 (+ Sentinel Security tab).");
         char *vs = read_file_all("/run/templeos-oracle");
         if (vs) {
             char *vl = strstr(vs, "verse=");

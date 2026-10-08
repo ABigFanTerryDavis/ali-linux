@@ -37,6 +37,8 @@ xprintidle
 preload
 flatpak
 kdeconnect
+xfce4-screenshooter
+ncdu
 conky-std
 cups
 system-config-printer

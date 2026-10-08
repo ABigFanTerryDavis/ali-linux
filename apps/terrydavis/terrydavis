@@ -368,7 +368,24 @@ crash_check() {
 night_check() {
     if ! command -v redshift >/dev/null 2>&1; then return 0; fi
     if ! id ali >/dev/null 2>&1; then return 0; fi
+    forced=$(cat "$STATE/night.force" 2>/dev/null)
     uid=$(id -u ali)
+    if [ "$forced" = "on" ] || [ "$forced" = "off" ]; then
+        if [ "$forced" = "on" ]; then want=1; else want=0; fi
+        running=0
+        pgrep -x redshift >/dev/null 2>&1 && running=1
+        if [ "$want" = "1" ] && [ "$running" = "0" ]; then
+            sudo -u ali DISPLAY=:0 DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${uid}/bus" \
+                redshift -t 5700:3500 >/dev/null 2>&1 &
+            log "night light FORCED on by operator"
+            write_status
+        elif [ "$want" = "0" ] && [ "$running" = "1" ]; then
+            pkill -x redshift 2>/dev/null || true
+            log "night light FORCED off by operator"
+            write_status
+        fi
+        return 0
+    fi
     h=$(date +%H)
     night=0
     if [ "$h" -ge 21 ] || [ "$h" -lt 6 ]; then night=1; fi
