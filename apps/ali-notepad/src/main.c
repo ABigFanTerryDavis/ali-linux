@@ -131,6 +131,8 @@ static void new_tab(GtkWindow *win, const char *path) {
         GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
     GtkWidget *view = gtk_text_view_new();
     gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(view), GTK_WRAP_WORD_CHAR);
+    if (GPOINTER_TO_INT(g_object_get_data(G_OBJECT(notebook), "ali-lines")))
+        gtk_text_view_set_show_line_numbers(GTK_TEXT_VIEW(view), TRUE);
     gtk_container_add(GTK_CONTAINER(scroll), view);
     g_object_set_data(G_OBJECT(scroll), "ali-view", view);
     textview = view;
@@ -341,6 +343,18 @@ static void on_find_next(GtkMenuItem *m, gpointer u) {
     find_next(GTK_WINDOW(u));
 }
 
+static void on_lines(GtkMenuItem *m, gpointer u) {
+    (void)u;
+    gboolean on = gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(m));
+    GtkWidget *page = current_page();
+    if (!page) return;
+    GtkWidget *view = g_object_get_data(G_OBJECT(page), "ali-view");
+    if (view) gtk_text_view_set_show_line_numbers(GTK_TEXT_VIEW(view), on);
+    /* remember for new tabs */
+    g_object_set_data(G_OBJECT(notebook), "ali-lines",
+        GINT_TO_POINTER(on ? 1 : 0));
+}
+
 static void on_print_draw(GtkPrintOperation *op, GtkPrintContext *ctx,
     gint page, gpointer u) {
     (void)op; (void)page;
@@ -419,6 +433,7 @@ int main(int argc, char **argv) {
     GtkWidget *i_close = gtk_menu_item_new_with_label(T("Close Tab", "Sekmeyi Kapat"));
     GtkWidget *i_find = gtk_menu_item_new_with_label(T("Find...", "Bul..."));
     GtkWidget *i_next = gtk_menu_item_new_with_label(T("Find Next", "Sonrakini Bul"));
+    GtkWidget *i_lines = gtk_check_menu_item_new_with_label(T("Line Numbers", "Satır Numaraları"));
     GtkWidget *i_about = gtk_menu_item_new_with_label(T("About", "Hakkında"));
     gtk_menu_shell_append(GTK_MENU_SHELL(fmenu), i_new);
     gtk_menu_shell_append(GTK_MENU_SHELL(fmenu), i_open);
@@ -431,11 +446,14 @@ int main(int argc, char **argv) {
     build_recent_menu(fmenu, win);
     gtk_menu_shell_append(GTK_MENU_SHELL(emenu), i_find);
     gtk_menu_shell_append(GTK_MENU_SHELL(emenu), i_next);
+    gtk_menu_shell_append(GTK_MENU_SHELL(emenu), gtk_separator_menu_item_new());
+    gtk_menu_shell_append(GTK_MENU_SHELL(emenu), i_lines);
     gtk_menu_shell_append(GTK_MENU_SHELL(hmenu), i_about);
 
     g_signal_connect(i_new, "activate", G_CALLBACK(on_new), win);
     g_signal_connect(i_find, "activate", G_CALLBACK(on_find), win);
     g_signal_connect(i_next, "activate", G_CALLBACK(on_find_next), win);
+    g_signal_connect(i_lines, "activate", G_CALLBACK(on_lines), win);
     g_signal_connect(i_open, "activate", G_CALLBACK(on_open), win);
     g_signal_connect(i_save, "activate", G_CALLBACK(on_save), win);
     g_signal_connect(i_saveas, "activate", G_CALLBACK(on_saveas), win);

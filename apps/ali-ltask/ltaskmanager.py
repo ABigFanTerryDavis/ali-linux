@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QTableWidget, QTableWidgetItem, QPushButton, QLineEdit, QLabel,
     QHeaderView, QMessageBox, QProgressBar, QComboBox, QMenu, QStackedWidget, QGridLayout, QFrame,
-    QFileDialog
+    QFileDialog, QInputDialog, QAbstractItemView
 )
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QColor, QBrush, QIcon
@@ -90,6 +90,9 @@ TRMAP = {
     "Application": "Uygulama",
     "Export CSV": "CSV Dışa Aktar",
     "Exported": "Dışa aktarıldı",
+    "Kill by Name…": "Ada Göre Öldür…",
+    "Exact process name:": "Tam işlem adı:",
+    "No such process.": "Böyle bir işlem yok.",
     "Enabled": "Etkin",
     "Source": "Kaynak",
     "Yes": "Evet",
@@ -666,6 +669,9 @@ class ProcessManager(QMainWindow):
         self.export_btn = QPushButton(_("Export CSV"))
         self.export_btn.clicked.connect(self.export_csv)
         top_layout.addWidget(self.export_btn)
+        self.byname_btn = QPushButton(_("Kill by Name…"))
+        self.byname_btn.clicked.connect(self.kill_by_name)
+        top_layout.addWidget(self.byname_btn)
 
         layout.addLayout(top_layout)
 
@@ -688,6 +694,7 @@ class ProcessManager(QMainWindow):
         self.table.setColumnWidth(5, 90)
         self.table.setColumnWidth(6, 110)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.table.setAlternatingRowColors(True)
         self.table.setSortingEnabled(False)
@@ -900,6 +907,13 @@ class ProcessManager(QMainWindow):
             return None
         return int(item.data(Qt.ItemDataRole.UserRole))
 
+    def get_selected_pids(self):
+        pids = []
+        for it in self.table.selectedItems():
+            if it.column() == 0 and it.data(Qt.ItemDataRole.UserRole):
+                pids.append(int(it.data(Qt.ItemDataRole.UserRole)))
+        return sorted(set(pids))
+
     def is_system_process(self, pid, name, user):
         if pid <= 1:
             return True
@@ -998,13 +1012,33 @@ class ProcessManager(QMainWindow):
         return False
 
     def kill_process(self):
-        pid = self.get_selected_pid()
-        if pid is None:
+        pids = self.get_selected_pids()
+        if not pids:
             QMessageBox.information(self, _("Select"), _("Select a process to end."))
             return
-        if pid == 1 or pid == 0:
+        pids = [p for p in pids if p not in (0, 1)]
+        if not pids:
             QMessageBox.warning(self, _("Blocked"), _("Cannot kill PID 0/1."))
             return
+        if len(pids) > 1:
+            if QMessageBox.question(self, _("End Task"),
+                    f"End {len(pids)} processes?\nThis may cause data loss." if not TR else f"{len(pids)} işlem sonlandırılsın mı?\nVeri kaybına yol açabilir.") != QMessageBox.StandardButton.Yes:
+                return
+            done, denied = 0, 0
+            for pid in pids:
+                try:
+                    psutil.Process(pid).terminate()
+                    done += 1
+                except psutil.NoSuchProcess:
+                    done += 1
+                except psutil.AccessDenied:
+                    denied += 1
+                except Exception:
+                    denied += 1
+            self.status.setText(f"Terminated {done}, denied {denied}" if not TR else f"Sonlandırıldı: {done}, red: {denied}")
+            self.refresh_processes()
+            return
+        pid = pids[0]
         name_item = self.table.item(self.table.currentRow(), 1)
         user_item = self.table.item(self.table.currentRow(), 6)
         name = name_item.text() if name_item else str(pid)
@@ -1076,6 +1110,33 @@ class ProcessManager(QMainWindow):
             self.status.setText(f"{_('Exported')}: {path}")
         except Exception as e:
             QMessageBox.warning(self, _("Error"), str(e))
+
+    def kill_by_name(self):
+        name, ok = QInputDialog.getText(self, _("Kill by Name…"), _("Exact process name:"))
+        if not ok or not name.strip():
+            return
+        name = name.strip()
+        if name in ("init", "systemd"):
+            QMessageBox.warning(self, _("Blocked"), _("Cannot kill PID 0/1."))
+            return
+        hits = [(p[0], p[1]) for p in self.all_procs if p[1] == name and p[0] not in (0, 1)]
+        if not hits:
+            QMessageBox.information(self, _("Gone"), _("No such process.") if not TR else "Böyle bir işlem yok.")
+            return
+        if QMessageBox.question(self, _("End Task"),
+                f"End {len(hits)}x '{name}' (PIDs {', '.join(str(h[0]) for h in hits[:8])})?" if not TR else f"{len(hits)} adet '{name}' sonlandırılsın mı?") != QMessageBox.StandardButton.Yes:
+            return
+        done, denied = 0, 0
+        for pid, _n in hits:
+            try:
+                psutil.Process(pid).terminate()
+                done += 1
+            except psutil.NoSuchProcess:
+                done += 1
+            except Exception:
+                denied += 1
+        self.status.setText(f"Terminated {done}, denied {denied}" if not TR else f"Sonlandırıldı: {done}, red: {denied}")
+        self.refresh_processes()
 
     def show_context_menu(self, pos):
         row = self.table.rowAt(pos.y())

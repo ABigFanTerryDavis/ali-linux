@@ -1,7 +1,7 @@
-PRETTY_NAME="ALI Linux 1.5.0"
+PRETTY_NAME="ALI Linux 1.5.1"
 NAME="ALI Linux"
-VERSION_ID="1.5.0"
-VERSION="1.5.0"
+VERSION_ID="1.5.1"
+VERSION="1.5.1"
 ID=ali
 ID_LIKE=debian
 HOME_URL="https://github.com/"

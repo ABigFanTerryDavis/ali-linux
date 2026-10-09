@@ -108,8 +108,36 @@ scan_procs() {
     done
 }
 
+scan_scanners() {
+    # port-scan watch: UFW BLOCK lines name the knockers. 10+ blocked
+    # packets from one IP in a window = scanner, exterminated by name.
+    [ -f /var/log/kern.log ] || return 0
+    inode=$(stat -c %i /var/log/kern.log 2>/dev/null)
+    size=$(stat -c %s /var/log/kern.log 2>/dev/null)
+    off=0; old_inode=""
+    [ -f "$STATE/kern.off" ] && read -r old_inode off < "$STATE/kern.off" 2>/dev/null
+    case "$off" in ''|*[!0-9]*) off=0 ;; esac
+    if [ "$inode" != "$old_inode" ] || [ "$size" -lt "$off" ]; then off=0; fi
+    new=$(tail -c +"$((off + 1))" /var/log/kern.log 2>/dev/null | grep -a 'UFW BLOCK' | grep -aoE 'SRC=[0-9a-fA-F.:]+' | cut -d= -f2 | sort | uniq -c | sort -rn)
+    echo "$inode $size" > "$STATE/kern.off"
+    [ -z "$new" ] && return 0
+    echo "$new" | while read -r count ip; do
+        [ -z "$ip" ] && continue
+        case "$ip" in 127.*|::1) continue ;; esac
+        if [ "$count" -ge 10 ]; then
+            if blocked_already "$ip"; then continue; fi
+            if ufw deny from "$ip" comment 'sentinel port-scan' >/dev/null 2>&1; then
+                event BLOCKED "exterminated port-scanner $ip ($count blocked knocks)"
+            else
+                event ALERT "could not block port-scanner $ip ($count blocked knocks)"
+            fi
+        fi
+    done
+}
+
 scan_once() {
     scan_logins
+    scan_scanners
     scan_ports
     scan_files
     scan_procs

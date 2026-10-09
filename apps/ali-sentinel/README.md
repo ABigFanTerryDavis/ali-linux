@@ -7,7 +7,8 @@ In-house watcher, not a repackaged suricata. Two halves:
   changes (`/etc/passwd`, `sudoers`, `sshd_config`...). Alerts via desktop
   notification + `/run/ali-security` feed + `/var/log/sentinel.log`.
 - IPS (exterminates): >=5 failed logins from one IP inside a scan window
-  gets `ufw deny` automatically. Suspicious processes are alert-only with a
+  gets `ufw deny` automatically, and 10+ firewall-blocked knocks names
+  a port-scanner for the same treatment. Suspicious processes are alert-only with a
   one-click kill (`ali-sentinel kill <pid>`) - blind auto-kill is how you
   shoot your own foot.
 

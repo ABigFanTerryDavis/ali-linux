@@ -27,7 +27,7 @@ static char *run_capture(const char *cmd);
 
 static void read_os_pretty(char *out, size_t n) {
     FILE *f = fopen("/etc/os-release", "r");
-    snprintf(out, n, "ALI Linux 1.5.0");
+    snprintf(out, n, "ALI Linux 1.5.1");
     if (!f) return;
     char line[256];
     while (fgets(line, sizeof(line), f)) {
@@ -272,6 +272,28 @@ static const char *build_status_text(void) {
     }
     snprintf(status_buf, sizeof(status_buf), "%s", s->str);
     g_string_free(s, TRUE);
+    /* daemons panel (1.5.1): all eight states + acknowledged-without flags */
+    {
+        static const char *daemons[] = {"odysseus", "sentinel", "terrydavis",
+            "templeos", "oracle", "abigfanterrydavis", "linustorvalds", "risestothrone", NULL};
+        GString *d = g_string_new("\n--- daemons ---\n");
+        for (int i = 0; daemons[i]; i++) {
+            char cmd[160], flag[160];
+            snprintf(cmd, sizeof(cmd),
+                "systemctl is-active %s 2>/dev/null || echo down", daemons[i]);
+            char *st = run_capture(cmd);
+            snprintf(flag, sizeof(flag), "/run/%s-acknowledged", daemons[i]);
+            int acked = g_file_test(flag, G_FILE_TEST_EXISTS);
+            const char *show;
+            if (st && strcmp(st, "active") == 0) show = "alive";
+            else if (strcmp(daemons[i], "risestothrone") == 0) show = "stood down (oneshot)";
+            else show = st ? st : "?";
+            g_string_append_printf(d, "%-18s %s%s\n", daemons[i], show,
+                acked ? " (acknowledged without)" : "");
+        }
+        strncat(status_buf, d->str, sizeof(status_buf) - strlen(status_buf) - 1);
+        g_string_free(d, TRUE);
+    }
     return status_buf;
 }
 
@@ -683,7 +705,7 @@ int main(int argc, char **argv) {
         GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
         gtk_container_set_border_width(GTK_CONTAINER(box), 16);
         char about[512];
-        snprintf(about, sizeof(about), ".-------.\n| o   o |\n|   A   |\n| o   o |\n'-------'\nALI Linux 1.5.0\nXFCE - amd64.\n\nALI Center 1.5.0 - C + GTK3 (+ Sentinel Security tab).");
+        snprintf(about, sizeof(about), ".-------.\n| o   o |\n|   A   |\n| o   o |\n'-------'\nALI Linux 1.5.1\nXFCE - amd64.\n\nALI Center 1.5.1 - C + GTK3 (+ Sentinel Security tab).");
         char *vs = read_file_all("/run/templeos-oracle");
         if (vs) {
             char *vl = strstr(vs, "verse=");
