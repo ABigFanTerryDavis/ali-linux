@@ -69,9 +69,28 @@ static const char *N_DESERT = "E4 G4 A4 B4 A4 G4 E4";
 static const char *N_FLUTE = "D5 F#5 A5 G5 F#5 D5";
 static const char *N_AMEN = "C5 D5 E5 G5 A5 G5 C6";
 
-/* scriptable tables for --play (alarm use) */
-static const char *QB[6] = {H_TEMPLE, H_ORACLE, H_640, H_DESERT, H_FLUTE, H_AMEN};
-static const char *QP[6] = {P_TEMPLE, P_ORACLE, P_640, P_DESERT, P_FLUTE, P_AMEN};
+/* scriptable lookup for --play (alarm use): variables can't init variables */
+static const char *song_beep(int i) {
+    switch (i) {
+        case 0: return H_TEMPLE;
+        case 1: return H_ORACLE;
+        case 2: return H_640;
+        case 3: return H_DESERT;
+        case 4: return H_FLUTE;
+        default: return H_AMEN;
+    }
+}
+
+static const char *song_pairs(int i) {
+    switch (i) {
+        case 0: return P_TEMPLE;
+        case 1: return P_ORACLE;
+        case 2: return P_640;
+        case 3: return P_DESERT;
+        case 4: return P_FLUTE;
+        default: return P_AMEN;
+    }
+}
 
 static GtkWidget *now_label = NULL;
 static GtkWidget *vol_scale = NULL;
@@ -121,7 +140,7 @@ static void on_play(GtkButton *b, gpointer u) {
 static void on_stop(GtkButton *b, gpointer u) {
     (void)b; (void)u;
     queue_on = 0;
-    system("pkill -x beep 2>/dev/null; pkill -x play 2>/dev/null");
+    { int rc = system("pkill -x beep 2>/dev/null; pkill -x play 2>/dev/null"); (void)rc; }
     gtk_label_set_text(GTK_LABEL(now_label), T("Stopped.", "Durduruldu."));
 }
 
@@ -135,7 +154,7 @@ static void play_index(int i) {
 
 static void on_prev(GtkButton *b, gpointer u) {
     (void)b; (void)u;
-    system("pkill -x beep 2>/dev/null; pkill -x play 2>/dev/null");
+    { int rc = system("pkill -x beep 2>/dev/null; pkill -x play 2>/dev/null"); (void)rc; }
     queue_on = 0;
     queue_idx = (queue_idx + 5) % 6;
     play_index(queue_idx);
@@ -143,7 +162,7 @@ static void on_prev(GtkButton *b, gpointer u) {
 
 static void on_next(GtkButton *b, gpointer u) {
     (void)b; (void)u;
-    system("pkill -x beep 2>/dev/null; pkill -x play 2>/dev/null");
+    { int rc = system("pkill -x beep 2>/dev/null; pkill -x play 2>/dev/null"); (void)rc; }
     queue_on = 0;
     queue_idx = (queue_idx + 1) % 6;
     play_index(queue_idx);
@@ -226,10 +245,10 @@ int main(int argc, char **argv) {
                 char cmd[2048];
                 snprintf(cmd, sizeof(cmd),
                     "for p in %s; do play -q -v 0.80 -n synth ${p##*:} sine ${p%%:*}; done",
-                    QP[n - 1]);
+                    song_pairs(n - 1));
                 return system(cmd) ? 1 : 0;
             } else if (g_find_program_in_path("beep")) {
-                return system(QB[n - 1]) ? 1 : 0;
+                return system(song_beep(n - 1)) ? 1 : 0;
             }
             fprintf(stderr, "no sound backend\n");
             return 1;
