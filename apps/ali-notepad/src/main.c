@@ -15,6 +15,15 @@ static char *current_file = NULL;
 static char *last_find = NULL;
 static GtkWidget *notebook = NULL;
 
+/* forward declarations: helpers are used before they are defined */
+static void set_title(GtkWindow *win);
+static void set_current_file(GtkWindow *win, const char *path);
+static void set_page_title(GtkWidget *page);
+static void sync_current(void);
+static void remember_recent(const char *path);
+static void new_tab(GtkWindow *win, const char *path);
+static void find_next(GtkWindow *win);
+
 static GtkWidget *current_page(void) {
     if (!notebook) return NULL;
     return gtk_notebook_get_nth_page(GTK_NOTEBOOK(notebook),
