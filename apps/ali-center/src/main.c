@@ -27,7 +27,7 @@ static char *run_capture(const char *cmd);
 
 static void read_os_pretty(char *out, size_t n) {
     FILE *f = fopen("/etc/os-release", "r");
-    snprintf(out, n, "ALI Linux 1.5.2");
+    snprintf(out, n, "ALI Linux 1.5.3");
     if (!f) return;
     char line[256];
     while (fgets(line, sizeof(line), f)) {
@@ -74,9 +74,11 @@ static void on_updates_refresh(GtkButton *b, gpointer u) {
     (void)b;
     char *n = run_capture("cat /run/ali-updates 2>/dev/null");
     char *day = run_capture("cat /run/odysseus-apt-day 2>/dev/null");
-    char buf[256];
-    snprintf(buf, sizeof(buf), "%s: %s\n%s: %s",
+    char *sec = run_capture("apt-get -s full-upgrade 2>/dev/null | grep '^Inst' | grep -c security");
+    char buf[384];
+    snprintf(buf, sizeof(buf), "%s: %s\n%s: %s\n%s: %s",
         T("Pending updates", "Bekleyen güncellemeler"), (n && *n) ? n : "?",
+        T("Security among them (urgent)", "Aralarında güvenlik (acil)"), (sec && *sec) ? sec : "?",
         T("Last checked", "Son denetim"), (day && *day) ? day : T("never", "hiç"));
     gtk_label_set_text(GTK_LABEL(u), buf);
 }
@@ -704,10 +706,23 @@ int main(int argc, char **argv) {
                 GtkWidget *b4 = gtk_button_new_with_label(T("Unblock IP…", "Engel Kaldır…"));
                 g_signal_connect(b4, "clicked", G_CALLBACK(on_unblock_clicked), NULL);
                 gtk_box_pack_start(GTK_BOX(frow), b4, TRUE, TRUE, 0);
-                GtkWidget *b5 = gtk_button_new_with_label(T("Allow Port…", "Port Aç…"));
-                g_signal_connect(b5, "clicked", G_CALLBACK(on_allow_clicked), NULL);
-                gtk_box_pack_start(GTK_BOX(frow), b5, TRUE, TRUE, 0);
-                gtk_box_pack_start(GTK_BOX(box), frow, FALSE, FALSE, 0);
+            GtkWidget *b5 = gtk_button_new_with_label(T("Allow Port…", "Port Aç…"));
+            g_signal_connect(b5, "clicked", G_CALLBACK(on_allow_clicked), NULL);
+            gtk_box_pack_start(GTK_BOX(frow), b5, TRUE, TRUE, 0);
+            gtk_box_pack_start(GTK_BOX(box), frow, FALSE, FALSE, 0);
+            /* Recent knocks (1.5.3): who knocked, at what door */
+            {
+                char *kn = run_capture("sudo -n grep -a 'UFW BLOCK' /var/log/kern.log 2>/dev/null | tail -n 5 | grep -aoE 'SRC=[0-9a-fA-F.:]+|DPT=[0-9]+' | paste -d ' ' - - | sed 's/^SRC=//; s/ DPT=/ : /'");
+                GtkWidget *kl = gtk_label_new(NULL);
+                char kbuf[640];
+                snprintf(kbuf, sizeof(kbuf), "%s:\n%s",
+                    T("Recent knocks (IP : port)", "Son vuruşlar (IP : port)"),
+                    (kn && *kn) ? kn : T("(quiet - or run: sudo grep UFW /var/log/kern.log)",
+                                         "(sessiz - ya da çalıştır: sudo grep UFW /var/log/kern.log)"));
+                gtk_label_set_text(GTK_LABEL(kl), kbuf);
+                gtk_label_set_selectable(GTK_LABEL(kl), TRUE);
+                gtk_box_pack_start(GTK_BOX(box), kl, FALSE, FALSE, 0);
+            }
             }
         }
         stack_page(stack, box, "security", T("Security", "Güvenlik"));
@@ -718,7 +733,7 @@ int main(int argc, char **argv) {
         GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
         gtk_container_set_border_width(GTK_CONTAINER(box), 16);
         char about[512];
-        snprintf(about, sizeof(about), ".-------.\n| o   o |\n|   A   |\n| o   o |\n'-------'\nALI Linux 1.5.2\nXFCE - amd64.\n\nALI Center 1.5.2 - C + GTK3 (+ Sentinel Security tab).");
+        snprintf(about, sizeof(about), ".-------.\n| o   o |\n|   A   |\n| o   o |\n'-------'\nALI Linux 1.5.3\nXFCE - amd64.\n\nALI Center 1.5.3 - C + GTK3 (+ Sentinel Security tab).");
         char *vs = read_file_all("/run/templeos-oracle");
         if (vs) {
             char *vl = strstr(vs, "verse=");

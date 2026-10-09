@@ -75,5 +75,33 @@ case "${1:-}" in
     list)
         ls -1 *.vault 2>/dev/null || echo "(no vaults here)"
         ;;
-    *) echo "usage: ali-vault lock <file> | ali-vault unlock <file.vault> | ali-vault list" >&2; exit 1 ;;
+    passwd)
+        v="${2:?usage: ali-vault passwd <file.vault>}"
+        [ -f "$v" ] || { echo "ali-vault: no such vault: $v" >&2; exit 1; }
+        tmp=$(mktemp -d) || exit 1
+        tar -xzf "$v" -C "$tmp" || { rm -rf "$tmp"; exit 1; }
+        stty -echo 2>/dev/null || true
+        printf 'old password: '; read -r pw; printf '\n'
+        stty echo 2>/dev/null || true
+        if ! printf '%s' "$pw" | openssl enc -d -aes-256-cbc -pbkdf2 -in "$tmp/key.enc" -out "$tmp/key" -pass stdin 2>/dev/null; then
+            pw=""
+            rm -rf "$tmp"
+            fail_event "$v"
+            echo "ali-vault: wrong password" >&2
+            exit 1
+        fi
+        pw=""
+        stty -echo 2>/dev/null || true
+        printf 'new password: '; read -r pw1; printf '\n'
+        printf 'again: '; read -r pw2; printf '\n'
+        stty echo 2>/dev/null || true
+        [ "$pw1" = "$pw2" ] || { echo "ali-vault: passwords differ" >&2; exit 1; }
+        [ -n "$pw1" ] || { echo "ali-vault: empty password" >&2; exit 1; }
+        printf '%s' "$pw1" | openssl enc -aes-256-cbc -pbkdf2 -salt -in "$tmp/key" -out "$tmp/key.enc" -pass stdin || { rm -rf "$tmp"; exit 1; }
+        pw1=""; pw2=""
+        tar -czf "$v" -C "$tmp" data.enc key.enc iv || { rm -rf "$tmp"; exit 1; }
+        rm -rf "$tmp"
+        echo "password changed: $v"
+        ;;
+    *) echo "usage: ali-vault lock <file> | ali-vault unlock <file.vault> | ali-vault passwd <file.vault> | ali-vault list" >&2; exit 1 ;;
 esac

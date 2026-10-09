@@ -8,6 +8,9 @@ ali-vault \- AES-256 file vault on Terry's Dice
 .B ali-vault unlock
 .I file.vault
 .br
+.B ali-vault passwd
+.I file.vault
+.br
 .B ali-vault list
 .SH DESCRIPTION
 .B lock
@@ -15,6 +18,8 @@ rolls a dice data key, encrypts the file, wraps the key with your
 password (PBKDF2) and shreds the original.
 .B unlock
 reverses it; a wrong password raises a Sentinel ALERT.
+.B passwd
+re-wraps the same data key under a new password (no re-encryption).
 .SH SEE ALSO
 .BR terry-dice (1),
 .BR ali-passgen (1)

@@ -41,6 +41,28 @@ case "${1:-}" in
         ;;
     *)
         dest="${1:-$(pick_dest)}"
+        case "$dest" in *@*:*)
+            command -v scp >/dev/null 2>&1 || { echo "$(TR 'needs openssh-client: sudo apt install openssh-client' 'openssh-client gerekli: sudo apt install openssh-client')" >&2; exit 1; }
+            tmpd=$(mktemp -d) || exit 1
+            tag=$(terry-dice hex 3 2>/dev/null || echo deadbe)
+            snap="$tmpd/home-$(date +%F)-$tag.tgz"
+            tar -czf "$snap" -C "$HOME" \
+                --exclude=.cache --exclude=.local/share/Trash \
+                --exclude=Backups --exclude=.thumbnails \
+                . || { rm -rf "$tmpd"; exit 1; }
+            if ! tar -tzf "$snap" >/dev/null 2>&1; then
+                echo "$(TR 'backup written but verify FAILED, not sending' 'yedek yazıldı ama doğrulama BAŞARISIZ, gönderilmiyor')" >&2
+                rm -rf "$tmpd"; exit 1
+            fi
+            if scp "$snap" "$dest" 2>/dev/null; then
+                echo "$(TR "backed up to: $dest/$(basename $snap)" "yedeklendi: $dest/$(basename $snap)")"
+            else
+                echo "$(TR 'scp failed - snapshot kept at: ' 'scp başarısız - yedek şurada duruyor: ')$snap" >&2
+                exit 1
+            fi
+            rm -rf "$tmpd"
+            ;;
+        *)
         mkdir -p "$dest" || exit 1
         tag=$(terry-dice hex 3 2>/dev/null || echo deadbe)
         snap="$dest/home-$(date +%F)-$tag.tgz"

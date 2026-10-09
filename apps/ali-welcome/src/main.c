@@ -103,6 +103,47 @@ int main(int argc, char **argv) {
         "<b><big>ALI Linux'a hoş geldin</big></b>\n<b><big>Welcome to ALI Linux</big></b>\nXFCE - hızlı, Türkçe, senin. / fast, Turkish, yours.");
     gtk_box_pack_start(GTK_BOX(box), head, FALSE, FALSE, 0);
 
+    /* hardware verdict (1.5.3): honest expectations on first run */
+    {
+        char *verdict = NULL;
+        FILE *mf = fopen("/proc/meminfo", "r");
+        long kb = 0;
+        if (mf) {
+            char line[256];
+            while (fgets(line, sizeof(line), mf)) {
+                if (sscanf(line, "MemTotal: %ld", &kb) == 1) break;
+            }
+            fclose(mf);
+        }
+        int ssd = 0;
+        FILE *df = popen("ls /sys/block/ 2>/dev/null | grep -v loop | head -n1", "r");
+        if (df) {
+            char dev[64] = {0};
+            if (fgets(dev, sizeof(dev), df)) {
+                dev[strcspn(dev, "\n")] = '\0';
+                char rp[160];
+                snprintf(rp, sizeof(rp), "/sys/block/%s/queue/rotational", dev);
+                FILE *rf = fopen(rp, "r");
+                if (rf) {
+                    int rot = 1;
+                    if (fscanf(rf, "%d", &rot) == 1 && rot == 0) ssd = 1;
+                    fclose(rf);
+                }
+            }
+            pclose(df);
+        }
+        if (kb >= 8 * 1024 * 1024 && ssd)
+            verdict = "Bu makinede ALI uçar. / ALI will fly on this machine.";
+        else if (kb >= 4 * 1024 * 1024)
+            verdict = "Rahat çalışır. / Comfortable ride.";
+        else if (kb > 0)
+            verdict = "Nazik ol, makine küçük. / Be gentle, small machine.";
+        else
+            verdict = "Hoş geldin. / Welcome.";
+        GtkWidget *vl = gtk_label_new(verdict);
+        gtk_box_pack_start(GTK_BOX(box), vl, FALSE, FALSE, 0);
+    }
+
     gtk_box_pack_start(GTK_BOX(box), big_button("WiFi Ayarları / WiFi Settings", G_CALLBACK(on_wifi)), FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(box), big_button("Güncellemeler / Updates", G_CALLBACK(on_updates)), FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(box), big_button("ALI Center (Denetim Masası / Control Panel)", G_CALLBACK(on_center)), FALSE, FALSE, 0);
