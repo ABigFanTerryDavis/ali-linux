@@ -217,6 +217,8 @@ static void build_recent_menu(GtkWidget *fmenu, gpointer win) {
     if (n > 0)
         gtk_menu_shell_append(GTK_MENU_SHELL(fmenu), ri);
 }
+
+static void on_close_tab(GtkMenuItem *m, gpointer u) {
     (void)m;
     GtkWindow *win = GTK_WINDOW(u);
     GtkWidget *page = current_page();
