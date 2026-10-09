@@ -27,7 +27,7 @@ static char *run_capture(const char *cmd);
 
 static void read_os_pretty(char *out, size_t n) {
     FILE *f = fopen("/etc/os-release", "r");
-    snprintf(out, n, "ALI Linux 1.5.1");
+    snprintf(out, n, "ALI Linux 1.5.2");
     if (!f) return;
     char line[256];
     while (fgets(line, sizeof(line), f)) {
@@ -272,10 +272,23 @@ static const char *build_status_text(void) {
     }
     snprintf(status_buf, sizeof(status_buf), "%s", s->str);
     g_string_free(s, TRUE);
+    /* dawn (1.5.2): jos spoke first */
+    {
+        char *dw = read_file_all("/run/jos-dawn");
+        if (dw) {
+            char *dl = strstr(dw, "date=");
+            char *dy = strstr(dw, "day=");
+            char dbl[192];
+            snprintf(dbl, sizeof(dbl), "\n--- dawn ---\n%s%s%s",
+                dl ? dl : "", (dl && dy) ? " " : "", dy ? dy : "");
+            strncat(status_buf, dbl, sizeof(status_buf) - strlen(status_buf) - 1);
+            free(dw);
+        }
+    }
     /* daemons panel (1.5.1): all eight states + acknowledged-without flags */
     {
         static const char *daemons[] = {"odysseus", "sentinel", "terrydavis",
-            "templeos", "oracle", "abigfanterrydavis", "linustorvalds", "risestothrone", NULL};
+            "templeos", "oracle", "abigfanterrydavis", "linustorvalds", "jos", "sparrowos", "risestothrone", NULL};
         GString *d = g_string_new("\n--- daemons ---\n");
         for (int i = 0; daemons[i]; i++) {
             char cmd[160], flag[160];
@@ -705,7 +718,7 @@ int main(int argc, char **argv) {
         GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
         gtk_container_set_border_width(GTK_CONTAINER(box), 16);
         char about[512];
-        snprintf(about, sizeof(about), ".-------.\n| o   o |\n|   A   |\n| o   o |\n'-------'\nALI Linux 1.5.1\nXFCE - amd64.\n\nALI Center 1.5.1 - C + GTK3 (+ Sentinel Security tab).");
+        snprintf(about, sizeof(about), ".-------.\n| o   o |\n|   A   |\n| o   o |\n'-------'\nALI Linux 1.5.2\nXFCE - amd64.\n\nALI Center 1.5.2 - C + GTK3 (+ Sentinel Security tab).");
         char *vs = read_file_all("/run/templeos-oracle");
         if (vs) {
             char *vl = strstr(vs, "verse=");

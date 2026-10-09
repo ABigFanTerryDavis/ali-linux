@@ -48,6 +48,11 @@ case "${1:-}" in
             --exclude=.cache --exclude=.local/share/Trash \
             --exclude=Backups --exclude=.thumbnails \
             . || exit 1
+        if ! tar -tzf "$snap" >/dev/null 2>&1; then
+            echo "$(TR 'backup written but verify FAILED, keeping anyway' 'yedek yazıldı ama doğrulama BAŞARISIZ, yine de saklanıyor')" >&2
+        else
+            echo "$(TR 'self-verify: OK' 'öz doğrulama: TAMAM')"
+        fi
         echo "$(TR "backed up to: $snap" "yedeklendi: $snap")"
         ls -lh "$snap"
         ;;

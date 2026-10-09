@@ -1,0 +1,58 @@
+#!/bin/sh
+# sparrowos - the fledgling, named for the small bird era. Watches which
+# GUI apps you actually open (hourly census of top CPU-time comms),
+# keeps the top habits, and pre-warms their binaries into page cache
+# at boot. Small, learning to fly your routine.
+set -u
+STATE=/var/lib/sparrowos
+HABITS=$STATE/habits
+LOG=/var/log/sparrow.log
+mkdir -p "$STATE" 2>/dev/null || true
+
+# GUI apps worth warming (binaries, resolved via PATH at warm time)
+CANDIDATES="firefox-esr firefox thunar xfce4-terminal ali-center ali-notepad ali-hymns ali-ltask ali-welcome mousepad ristretto parole"
+
+census() {
+    # top comms by cumulative CPU time this boot (parens-aware stat parse)
+    tmp="$STATE/census.tmp"
+    : > "$tmp" 2>/dev/null || true
+    for d in /proc/[0-9]*; do
+        c=$(cat "$d/comm" 2>/dev/null) || continue
+        line=$(cat "$d/stat" 2>/dev/null) || continue
+        rest=${line#*)}
+        set -- $rest
+        utime=${12:-}; stime=${13:-}
+        case "$utime" in ''|*[!0-9]*) continue ;; esac
+        case "$stime" in ''|*[!0-9]*) continue ;; esac
+        echo "$((utime + stime)) $c" >> "$tmp"
+    done
+    awk '{t[$2]+=$1} END {for (c in t) print t[c], c}' "$tmp" 2>/dev/null | sort -rn | head -n 30 > "$HABITS.new" 2>/dev/null || true
+    mv "$HABITS.new" "$HABITS" 2>/dev/null || true
+    rm -f "$tmp"
+}
+
+warm() {
+    [ -f "$HABITS" ] || return 0
+    n=0
+    while read -r _ticks comm; do
+        [ -n "$comm" ] || continue
+        hit=0
+        for c in $CANDIDATES; do
+            if [ "$comm" = "$c" ] || [ "$comm" = "python3" ]; then hit=1; break; fi
+        done
+        [ "$hit" = "1" ] || continue
+        bin=$(command -v "$comm" 2>/dev/null || true)
+        [ -n "$bin" ] && [ -f "$bin" ] || continue
+        dd if="$bin" of=/dev/null bs=1M status=none 2>/dev/null || true
+        n=$((n + 1))
+        [ "$n" -ge 5 ] && break
+    done < "$HABITS"
+    [ "$n" -gt 0 ] && echo "$(date '+%F %T') sparrow: warmed $n binaries" >> "$LOG" 2>/dev/null || true
+}
+
+case "${1:-}" in
+    --once) census ;;
+    warm) warm ;;
+    *)  warm
+        while true; do sleep 3600; census; done ;;
+esac

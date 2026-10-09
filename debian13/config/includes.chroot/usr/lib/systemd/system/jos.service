@@ -1,0 +1,15 @@
+[Unit]
+Description=JOS dawn herald - first voice at boot
+Documentation=https://github.com/
+DefaultDependencies=no
+Before=sysinit.target odysseus.service
+Wants=local-fs.target
+After=local-fs.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/jos
+
+[Install]
+WantedBy=sysinit.target

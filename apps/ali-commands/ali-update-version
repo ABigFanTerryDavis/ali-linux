@@ -35,10 +35,10 @@ if [ "${1:-}" = "--check" ]; then
     else
         echo "build tools: MISSING (would install gcc make pkg-config libgtk-3-dev first)"
     fi
-for f in ali-update ali-info ali-perf ali-normal ali-mirrors ali-game ali-alarm ali-update-version ali-terminal ali-backup hcc terry odysseus sentinel ali-sentinel terrydavis templeos ali-oracle ali-retro terry-dice ali-passgen ali-vault oracle risestothrone abigfanterrydavis linustorvalds; do
+for f in ali-update ali-info ali-perf ali-normal ali-mirrors ali-game ali-alarm ali-update-version ali-terminal ali-backup hcc terry odysseus sentinel ali-sentinel terrydavis templeos ali-oracle ali-retro terry-dice ali-passgen ali-vault oracle risestothrone abigfanterrydavis linustorvalds jos sparrowos; do
         if [ -f "/usr/bin/$f" ]; then echo "would refresh: /usr/bin/$f"; else echo "would install: /usr/bin/$f"; fi
     done
-for unit in odysseus sentinel terrydavis templeos oracle risestothrone abigfanterrydavis linustorvalds; do
+for unit in odysseus sentinel terrydavis templeos oracle risestothrone abigfanterrydavis linustorvalds jos sparrowos; do
         if systemctl is-active --quiet "$unit" 2>/dev/null; then echo "would restart: $unit (running)"; else echo "would restart: $unit (not running)"; fi
     done
     exit 0

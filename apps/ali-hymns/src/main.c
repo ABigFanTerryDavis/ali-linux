@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
+#include <unistd.h>
 
 /* ALI Hymns 1.3.5 - TempleOS-tribute chiptune player, C + GTK3.
  * Original melodies (no covers). Two backends, auto-picked: `play` (sox,
@@ -168,6 +170,23 @@ static void on_next(GtkButton *b, gpointer u) {
     play_index(queue_idx);
 }
 
+static void on_shuffle(GtkButton *b, gpointer u) {
+    (void)b; (void)u;
+    /* Fisher-Yates over the queue tables (GLib rand, seeded once) */
+    static int seeded = 0;
+    if (!seeded) { srand((unsigned)time(NULL) ^ (unsigned)getpid()); seeded = 1; }
+    for (int i = 5; i > 0; i--) {
+        int j = rand() % (i + 1);
+        const char *tb = queue_beep[i]; queue_beep[i] = queue_beep[j]; queue_beep[j] = tb;
+        const char *tp = queue_pairs[i]; queue_pairs[i] = queue_pairs[j]; queue_pairs[j] = tp;
+        const char *tn = queue_notes[i]; queue_notes[i] = queue_notes[j]; queue_notes[j] = tn;
+    }
+    queue_idx = 0;
+    gtk_label_set_text(GTK_LABEL(now_label),
+        T("Shuffled. Play All for dice order.",
+          "Karıştırıldı. Zar sırası için Tümünü Çal."));
+}
+
 static void on_playall(GtkButton *b, gpointer u) {
     (void)b; (void)u;
     /* one background shell, six songs chained; Stop (pkill) ends it */
@@ -304,6 +323,10 @@ int main(int argc, char **argv) {
     g_signal_connect(bnext, "clicked", G_CALLBACK(on_next), NULL);
     gtk_box_pack_start(GTK_BOX(qrow), bnext, TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(box), qrow, FALSE, FALSE, 0);
+
+    GtkWidget *bshuf = gtk_button_new_with_label(T("🔀 Shuffle", "🔀 Karıştır"));
+    g_signal_connect(bshuf, "clicked", G_CALLBACK(on_shuffle), NULL);
+    gtk_box_pack_start(GTK_BOX(box), bshuf, FALSE, FALSE, 0);
 
     GtkWidget *row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
     GtkWidget *bs = gtk_button_new_with_label(T("Stop", "Durdur"));

@@ -1,4 +1,4 @@
-# ALI Linux 1.5.1 - Debian trixie based, XFCE, amd64
+# ALI Linux 1.5.2 - Debian trixie based, XFCE, amd64
 
 Learning project. Visible rebrand only - underneath 100% Debian.
 
@@ -52,6 +52,7 @@ Learning project. Visible rebrand only - underneath 100% Debian.
 - 1.4.9 - (staged) abigfanterrydavis identity guardian + linustorvalds kernel voice
 - 1.5.0 - (staged) ali-fail honest blue screen (OnFailure on all daemons)
 - 1.5.1 - (staged) Watchers: daemons panel, port-scan teeth, batch kill, backup verify, line numbers
+- 1.5.2 - (staged) Genesis pair: jos dawn herald, sparrowos learner + shuffle/wc/autoverify/dawn
 
 ## Push checklist (1.4.5 push - THIS IS IT)
 ```powershell

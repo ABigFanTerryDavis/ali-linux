@@ -125,12 +125,39 @@ static int save_file(const char *path, GtkWindow *win) {
     return 1;
 }
 
+static GtkWidget *wc_label = NULL;
+
+static void update_wc(void) {
+    if (!wc_label || !textview) return;
+    GtkTextBuffer *tb = gtk_text_view_get_buffer(GTK_TEXT_VIEW(textview));
+    GtkTextIter s, e;
+    gtk_text_buffer_get_bounds(tb, &s, &e);
+    char *txt = gtk_text_buffer_get_text(tb, &s, &e, FALSE);
+    int chars = txt ? (int)strlen(txt) : 0;
+    int words = 0, in = 0;
+    for (char *p = txt; p && *p; p++) {
+        if (*p == ' ' || *p == '\n' || *p == '\t') in = 0;
+        else if (!in) { in = 1; words++; }
+    }
+    char buf[128];
+    snprintf(buf, sizeof(buf), T("%d words, %d chars", "%d kelime, %d karakter"), words, chars);
+    gtk_label_set_text(GTK_LABEL(wc_label), buf);
+    g_free(txt);
+}
+
+static void on_buf_changed(GtkTextBuffer *tb, gpointer u) {
+    (void)tb; (void)u;
+    update_wc();
+}
+
 static void new_tab(GtkWindow *win, const char *path) {
     GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll),
         GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
     GtkWidget *view = gtk_text_view_new();
     gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(view), GTK_WRAP_WORD_CHAR);
+    g_signal_connect(gtk_text_view_get_buffer(GTK_TEXT_VIEW(view)),
+        "changed", G_CALLBACK(on_buf_changed), NULL);
     if (GPOINTER_TO_INT(g_object_get_data(G_OBJECT(notebook), "ali-lines")))
         gtk_text_view_set_show_line_numbers(GTK_TEXT_VIEW(view), TRUE);
     gtk_container_add(GTK_CONTAINER(scroll), view);
@@ -149,6 +176,7 @@ static void on_switch(GtkNotebook *nb, GtkWidget *page, guint n, gpointer u) {
     (void)nb; (void)page; (void)n;
     sync_current();
     set_title(GTK_WINDOW(u));
+    update_wc();
 }
 
 static void on_new(GtkMenuItem *m, gpointer u) {
@@ -490,6 +518,10 @@ int main(int argc, char **argv) {
             opened++;
         }
         if (!opened) new_tab(GTK_WINDOW(win), NULL);
+
+    wc_label = gtk_label_new("");
+    gtk_box_pack_start(GTK_BOX(vbox), wc_label, FALSE, FALSE, 2);
+    update_wc();
     }
 
     gtk_widget_show_all(win);

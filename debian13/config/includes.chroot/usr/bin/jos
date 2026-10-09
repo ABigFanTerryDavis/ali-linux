@@ -1,0 +1,27 @@
+#!/bin/sh
+# jos - dawn herald, named for the genesis (J Operating System, where the
+# temple began). Ordered before Odysseus: the first voice at boot.
+# Writes the day (/run/jos-dawn): date, day-count since first boot,
+# today's verse. Then steps aside.
+set -u
+STATE=/var/lib/jos
+DAWN=/run/jos-dawn
+LOG=/var/log/jos.log
+mkdir -p "$STATE" 2>/dev/null || true
+
+if [ ! -f "$STATE/birth" ]; then
+    date +%s > "$STATE/birth" 2>/dev/null || true
+fi
+birth=$(cat "$STATE/birth" 2>/dev/null || echo 0)
+now=$(date +%s)
+case "$birth" in ''|*[!0-9]*) day=1 ;; *) day=$(( (now - birth) / 86400 + 1 )) ;; esac
+verse=""
+if [ -x /usr/bin/templeos ]; then
+    verse=$(/usr/bin/templeos verse 2>/dev/null)
+fi
+{
+    echo "date=$(date '+%F %A')"
+    echo "day=$day"
+    echo "verse=${verse:-rise and shine}"
+} > "$DAWN" 2>/dev/null || true
+echo "$(date '+%F %T') jos: day $day begins" >> "$LOG" 2>/dev/null || true
