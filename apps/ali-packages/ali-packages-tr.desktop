@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=ALI Paketler
+Comment=Yazılım kur ve kaldır (Türkçe)
+Exec=env ALI_LANG=tr ali-packages
+Icon=system-software-install
+Terminal=false
+Categories=System;PackageManager;Settings;
+Keywords=ALI;Paket;Yazılım;Kur;Apt;

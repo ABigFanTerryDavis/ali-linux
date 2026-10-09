@@ -1,0 +1,40 @@
+#!/bin/sh
+# risestothrone - farewell guardian. Started at boot (marks the throne),
+# stopped at shutdown BEFORE odysseus (second-to-last voice).
+# ExecStop ritual: wait out critical work (backup/vault/apt, max 60s),
+# archive the Oracle feed tail, write the book of last words, sync.
+# It cannot stop physics - only finish and remember.
+set -u
+STATE=/var/lib/risestothrone
+LOG=/var/log/farewell.log
+WORDS=/var/log/last-words.log
+mkdir -p "$STATE" 2>/dev/null || true
+
+case "${1:-}" in
+    mark)
+        date -u +%FT%TZ > "$STATE/last-boot" 2>/dev/null || true
+        ;;
+    farewell)
+        echo "--- farewell $(date '+%F %T') ---" >> "$LOG" 2>/dev/null || true
+        # delay-guard: let the critical finish (backup, vault, apt)
+        waited=0
+        while [ "$waited" -lt 60 ]; do
+            busy=0
+            pgrep -x ali-backup >/dev/null 2>&1 && busy=1
+            if command -v fuser >/dev/null 2>&1; then
+                fuser /var/lib/dpkg/lock >/dev/null 2>&1 && busy=1
+            fi
+            [ "$busy" = "0" ] && break
+            sleep 5
+            waited=$((waited + 5))
+        done
+        [ "$waited" -gt 0 ] && echo "waited ${waited}s for critical work" >> "$LOG" 2>/dev/null || true
+        # the oracle's last verdict rides along
+        tail -n 5 /run/ali-oracle 2>/dev/null >> "$LOG" || true
+        # the book of last words: final kernel line
+        dmesg 2>/dev/null | tail -n1 >> "$WORDS" 2>/dev/null || true
+        echo "the throne is empty" >> "$LOG" 2>/dev/null || true
+        sync; sync
+        ;;
+    *) echo "usage: risestothrone mark|farewell" >&2; exit 1 ;;
+esac

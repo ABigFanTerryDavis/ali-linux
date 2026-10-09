@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=ALI Packages
+Comment=Install and remove software
+Exec=ali-packages
+Icon=system-software-install
+Terminal=false
+Categories=System;PackageManager;Settings;
+Keywords=ALI;Packages;Software;Install;Apt;

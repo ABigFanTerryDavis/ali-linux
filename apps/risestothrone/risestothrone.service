@@ -1,0 +1,14 @@
+[Unit]
+Description=Rises to Throne - farewell guardian (shutdown ritual)
+Documentation=https://github.com/
+DefaultDependencies=no
+Before=shutdown.target odysseus.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/risestothrone mark
+ExecStop=/usr/bin/risestothrone farewell
+
+[Install]
+WantedBy=multi-user.target

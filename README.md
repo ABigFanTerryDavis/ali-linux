@@ -1,4 +1,4 @@
-# ALI Linux 1.4.6 - Debian trixie based, XFCE, amd64
+# ALI Linux 1.4.7 - Debian trixie based, XFCE, amd64
 
 Learning project. Visible rebrand only - underneath 100% Debian.
 
@@ -47,6 +47,7 @@ Learning project. Visible rebrand only - underneath 100% Debian.
 - 1.4.4 - (staged, PUSHED in 1.4.5) Dressed in dice: dice fastfetch + About art, mini-dice menu button, greeter logo
 - 1.4.5 - PUSHED: chime, CSV export, SSH limit, recents, transparency + dice logo everywhere
 - 1.4.6 - (staged) TCC ships with the distro, just like gcc
+- 1.4.7 - (staged) risestothrone farewell guardian + ALI Packages app
 
 ## Push checklist (1.4.5 push - THIS IS IT)
 ```powershell

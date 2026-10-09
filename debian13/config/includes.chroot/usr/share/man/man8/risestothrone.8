@@ -1,0 +1,17 @@
+.TH RISESTOTHRONE 8 "October 2026" "ALI Linux 1.4.7" "System Daemons"
+.SH NAME
+risestothrone \- farewell guardian: finish and remember
+.SH SYNOPSIS
+.B risestothrone mark|farewell
+.RB ( run by systemd, not by hand )
+.SH DESCRIPTION
+Ordered to stop before Odysseus, second-to-last voice. At boot it
+marks the throne; at shutdown it waits out critical work (backup,
+vault, dpkg lock - max 60s), archives the Oracle feed tail to
+.IR /var/log/farewell.log ,
+writes the final kernel line to
+.IR /var/log/last-words.log ,
+and syncs. Named for Terry's last video.
+.SH SEE ALSO
+.BR oracle (8),
+.BR odysseus (8)
