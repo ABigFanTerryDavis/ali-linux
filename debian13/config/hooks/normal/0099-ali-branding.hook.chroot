@@ -4,10 +4,10 @@ set -e
 # Overwrites base-files on every build so branding survives upgrades in the live system
 
 cat > /etc/os-release <<'EOF'
-PRETTY_NAME="ALI Linux 1.4.4"
+PRETTY_NAME="ALI Linux 1.4.5"
 NAME="ALI Linux"
-VERSION_ID="1.4.4"
-VERSION="1.4.4"
+VERSION_ID="1.4.5"
+VERSION="1.4.5"
 ID=ali
 ID_LIKE=debian
 HOME_URL="https://github.com/"
@@ -16,9 +16,9 @@ EOF
 
 cat > /etc/lsb-release <<'EOF'
 DISTRIB_ID="ALI Linux"
-DISTRIB_RELEASE=1.4.4
+DISTRIB_RELEASE=1.4.5
 DISTRIB_CODENAME=ali
-DISTRIB_DESCRIPTION="ALI Linux 1.4.4"
+DISTRIB_DESCRIPTION="ALI Linux 1.4.5"
 EOF
 
 echo "ali" > /etc/hostname
@@ -30,9 +30,9 @@ ff02::1 ip6-allnodes
 ff02::2 ip6-allrouters
 EOF
 
-echo "ALI Linux 1.4.4 \\n \\l" > /etc/issue
-echo "ALI Linux 1.4.4" > /etc/issue.net
-echo "ALI Linux 1.4.4" > /etc/motd
+echo "ALI Linux 1.4.5 \\n \\l" > /etc/issue
+echo "ALI Linux 1.4.5" > /etc/issue.net
+echo "ALI Linux 1.4.5" > /etc/motd
 if [ -f /usr/share/ali/mascot.txt ]; then
   cat /usr/share/ali/mascot.txt >> /etc/motd 2>/dev/null || true
 fi
@@ -43,7 +43,7 @@ if [ -d /etc/lightdm ]; then
   cat > /etc/lightdm/lightdm-gtk-greeter.conf <<'EOF'
 [greeter]
 background=/usr/share/backgrounds/ali/default.jpg
-logo=/usr/share/ali/logo.jpg
+logo=/usr/share/ali/logo.png
 theme-name=Greybird
 icon-theme-name=elementary-xfce
 font-name=Cantarell 11
@@ -99,7 +99,7 @@ EOF
 if [ -f /etc/bash.bashrc ] && ! grep -q "ali-safe-rm.sh" /etc/bash.bashrc 2>/dev/null; then
   echo '[ -f /etc/ali-safe-rm.sh ] && . /etc/ali-safe-rm.sh' >> /etc/bash.bashrc || true
 fi
-# ALI terminal billboard - fastfetch on every interactive terminal (1.4.4)
+# ALI terminal billboard - fastfetch on every interactive terminal (1.4.5)
 if [ -f /etc/bash.bashrc ] && ! grep -q "ALI terminal billboard" /etc/bash.bashrc 2>/dev/null; then
   cat >> /etc/bash.bashrc <<'EOF' || true
 # ALI terminal billboard
@@ -189,7 +189,7 @@ cat > /usr/share/ali/fastfetch-logo.txt <<'EOF'
  / ___ |/ /___ / /
 /_/  |_/_____/___/
 
-ALI Linux 1.4.4 - XFCE
+ALI Linux 1.4.5 - XFCE
 EOF
 cat > /etc/skel/.config/fastfetch/config.jsonc <<'EOF'
 {
@@ -216,15 +216,17 @@ cat > /etc/skel/.config/fastfetch/config.jsonc <<'EOF'
 }
 EOF
 
-# Flatpak + Flathub (1.4.4) - newer apps on the stable base
+# Flatpak + Flathub (1.4.5) - newer apps on the stable base
 if command -v flatpak >/dev/null 2>&1; then
   flatpak remote-add --system --if-not-exists flathub \
     https://flathub.org/repo/flathub.flatpakrepo 2>/dev/null || true
 fi
-# KDE Connect lane through the firewall (1.4.4)
+# KDE Connect lane through the firewall (1.4.5)
 if command -v ufw >/dev/null 2>&1; then
   ufw allow 1714:1764/tcp comment 'kdeconnect' 2>/dev/null || true
   ufw allow 1714:1764/udp comment 'kdeconnect' 2>/dev/null || true
+  # SSH rate-limit (1.4.5): throttled before Sentinel even sees it
+  ufw limit 22/tcp comment 'ssh rate-limit' 2>/dev/null || true
 fi
 # ALI icon (menu button) - refresh cache so hicolor picks up ali-logo
 if command -v gtk-update-icon-cache >/dev/null 2>&1; then

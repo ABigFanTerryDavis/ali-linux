@@ -1,24 +1,33 @@
-# ALI splash: dark background, big title, progress bar.
+# ALI splash: dark background, dice mark, title, progress bar.
 # bg.png / bar-bg.png / bar-fill.png are generated at build time by the
 # branding hook (stdlib python3, solid colors - zero asset deps).
+# dice.png is the canonical logo (transparent, shipped with the theme).
 bg = Image("bg.png");
 bg_sp = Sprite(bg);
 bg_sp.SetPosition(Window.GetX(), Window.GetY(), -10);
 
-title = Image.Text("ALI Linux", 1, 1, 1, "Sans 72");
-ts = Sprite(title);
-tx = Window.GetX() + (Window.GetWidth() - title.GetWidth()) / 2;
-ty = Window.GetY() + (Window.GetHeight() - title.GetHeight()) / 2 - 80;
-ts.SetPosition(tx, ty, 10);
+dice = Image("dice.png");
+dice_sp = Sprite(dice);
+dice_sp.SetPosition(
+    Window.GetX() + (Window.GetWidth() - 500) / 2,
+    Window.GetY() + (Window.GetHeight() - 500) / 2 - 130, 10);
 
-sub = Image.Text("XFCE", 0.55, 0.58, 0.72, "Sans 28");
+title = Image.Text("ALI Linux", 1, 1, 1, "Sans 64");
+ts = Sprite(title);
+ts.SetPosition(
+    Window.GetX() + (Window.GetWidth() - title.GetWidth()) / 2,
+    Window.GetY() + (Window.GetHeight() - 500) / 2 + 390, 10);
+
+sub = Image.Text("XFCE", 0.55, 0.58, 0.72, "Sans 24");
 ss = Sprite(sub);
-ss.SetPosition(Window.GetX() + (Window.GetWidth() - sub.GetWidth()) / 2, ty + title.GetHeight() + 20, 10);
+ss.SetPosition(
+    Window.GetX() + (Window.GetWidth() - sub.GetWidth()) / 2,
+    Window.GetY() + (Window.GetHeight() - 500) / 2 + 390 + title.GetHeight() + 10, 10);
 
 bar_w = 600;
 bar_h = 20;
 bx = Window.GetX() + (Window.GetWidth() - bar_w) / 2;
-by = Window.GetY() + Window.GetHeight() * 0.75;
+by = Window.GetY() + Window.GetHeight() * 0.86;
 
 bar_bg = Image("bar-bg.png");
 bbs = Sprite(bar_bg);

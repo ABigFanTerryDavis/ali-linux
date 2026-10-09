@@ -12,7 +12,8 @@ from collections import deque
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QTableWidget, QTableWidgetItem, QPushButton, QLineEdit, QLabel,
-    QHeaderView, QMessageBox, QProgressBar, QComboBox, QMenu, QStackedWidget, QGridLayout, QFrame
+    QHeaderView, QMessageBox, QProgressBar, QComboBox, QMenu, QStackedWidget, QGridLayout, QFrame,
+    QFileDialog
 )
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QColor, QBrush, QIcon
@@ -87,6 +88,8 @@ TRMAP = {
     "Boot Off": "Açılışta Kapat",
     "Startup": "Başlangıç",
     "Application": "Uygulama",
+    "Export CSV": "CSV Dışa Aktar",
+    "Exported": "Dışa aktarıldı",
     "Enabled": "Etkin",
     "Source": "Kaynak",
     "Yes": "Evet",
@@ -656,6 +659,9 @@ class ProcessManager(QMainWindow):
         self.kill_tree_btn = QPushButton(_("End Process Tree"))
         self.kill_tree_btn.clicked.connect(self.kill_tree)
         top_layout.addWidget(self.kill_tree_btn)
+        self.export_btn = QPushButton(_("Export CSV"))
+        self.export_btn.clicked.connect(self.export_csv)
+        top_layout.addWidget(self.export_btn)
 
         layout.addLayout(top_layout)
 
@@ -1050,6 +1056,22 @@ class ProcessManager(QMainWindow):
         except Exception as e:
             QMessageBox.warning(self, _("Error"), str(e))
         self.refresh_processes()
+
+    def export_csv(self):
+        import csv
+        path, _f = QFileDialog.getSaveFileName(self, _("Export CSV"),
+            os.path.expanduser("~/ltask-processes.csv"), "CSV (*.csv)")
+        if not path:
+            return
+        try:
+            with open(path, "w", newline="", encoding="utf-8") as f:
+                w = csv.writer(f)
+                w.writerow(COLS)
+                for p in self.all_procs:
+                    w.writerow(list(p))
+            self.status.setText(f"{_('Exported')}: {path}")
+        except Exception as e:
+            QMessageBox.warning(self, _("Error"), str(e))
 
     def show_context_menu(self, pos):
         row = self.table.rowAt(pos.y())

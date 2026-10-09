@@ -27,7 +27,7 @@ static char *run_capture(const char *cmd);
 
 static void read_os_pretty(char *out, size_t n) {
     FILE *f = fopen("/etc/os-release", "r");
-    snprintf(out, n, "ALI Linux 1.4.4");
+    snprintf(out, n, "ALI Linux 1.4.5");
     if (!f) return;
     char line[256];
     while (fgets(line, sizeof(line), f)) {
@@ -126,6 +126,33 @@ static void on_browser_clicked(GtkButton *b, gpointer u) {
 static void on_shot_clicked(GtkButton *b, gpointer u) {
     (void)b; (void)u;
     launch_async("xfce4-screenshooter 2>/dev/null || scrot 2>/dev/null || true");
+}
+
+static void on_transparent_clicked(GtkButton *b, gpointer u) {
+    const char *mode = (const char *)u;
+    char path[512];
+    snprintf(path, sizeof(path), "%s/.config/xfce4/terminal/terminalrc", g_get_home_dir());
+    (void)b;
+    if (strcmp(mode, "on") == 0) {
+        char cmd[640];
+        snprintf(cmd, sizeof(cmd),
+            "grep -q '^BackgroundMode=' '%s' 2>/dev/null && sed -i 's/^BackgroundMode=.*/BackgroundMode=TERMINAL_BACKGROUND_TRANSPARENT/' '%s' || echo 'BackgroundMode=TERMINAL_BACKGROUND_TRANSPARENT' >> '%s'; "
+            "grep -q '^BackgroundDarkness=' '%s' 2>/dev/null && sed -i 's/^BackgroundDarkness=.*/BackgroundDarkness=0.85/' '%s' || echo 'BackgroundDarkness=0.85' >> '%s'",
+            path, path, path, path, path, path);
+        int rc = system(cmd);
+        (void)rc;
+    } else {
+        char cmd[320];
+        snprintf(cmd, sizeof(cmd),
+            "sed -i 's/^BackgroundMode=.*/BackgroundMode=TERMINAL_BACKGROUND_SOLID/' '%s' 2>/dev/null || true", path);
+        int rc = system(cmd);
+        (void)rc;
+    }
+    GtkWidget *d = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL,
+        GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE, "%s",
+        T("Applies to terminals you open next.", "Sonra açacağın uçbirimlerde geçerli."));
+    gtk_dialog_run(GTK_DIALOG(d));
+    gtk_widget_destroy(d);
 }
 
 static void on_disk_clicked(GtkButton *b, gpointer u) {
@@ -492,6 +519,19 @@ int main(int argc, char **argv) {
             gtk_box_pack_start(GTK_BOX(nrow), n3, TRUE, TRUE, 0);
             gtk_box_pack_start(GTK_BOX(box), nrow, FALSE, FALSE, 0);
         }
+        /* Transparent terminal (applies to new windows) */
+        {
+            GtkWidget *trow = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+            GtkWidget *t0 = gtk_label_new(T("Terminal:", "Uçbirim:"));
+            gtk_box_pack_start(GTK_BOX(trow), t0, FALSE, FALSE, 0);
+            GtkWidget *t1 = gtk_button_new_with_label(T("Transparent", "Saydam"));
+            g_signal_connect(t1, "clicked", G_CALLBACK(on_transparent_clicked), (gpointer)"on");
+            gtk_box_pack_start(GTK_BOX(trow), t1, TRUE, TRUE, 0);
+            GtkWidget *t2 = gtk_button_new_with_label(T("Opaque", "Opak"));
+            g_signal_connect(t2, "clicked", G_CALLBACK(on_transparent_clicked), (gpointer)"off");
+            gtk_box_pack_start(GTK_BOX(trow), t2, TRUE, TRUE, 0);
+            gtk_box_pack_start(GTK_BOX(box), trow, FALSE, FALSE, 0);
+        }
         GtkWidget *h = gtk_label_new(T("Tip: right-click Desktop -> Desktop Settings to change wallpaper.",
             "İpucu: duvar kağıdını değiştirmek için Masaüstüne sağ tıkla -> Masaüstü Ayarları."));
         gtk_box_pack_start(GTK_BOX(box), h, FALSE, FALSE, 8);
@@ -643,7 +683,7 @@ int main(int argc, char **argv) {
         GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
         gtk_container_set_border_width(GTK_CONTAINER(box), 16);
         char about[512];
-        snprintf(about, sizeof(about), ".-------.\n| o   o |\n|   A   |\n| o   o |\n'-------'\nALI Linux 1.4.4\nXFCE - amd64.\n\nALI Center 1.4.4 - C + GTK3 (+ Sentinel Security tab).");
+        snprintf(about, sizeof(about), ".-------.\n| o   o |\n|   A   |\n| o   o |\n'-------'\nALI Linux 1.4.5\nXFCE - amd64.\n\nALI Center 1.4.5 - C + GTK3 (+ Sentinel Security tab).");
         char *vs = read_file_all("/run/templeos-oracle");
         if (vs) {
             char *vl = strstr(vs, "verse=");

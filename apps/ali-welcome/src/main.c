@@ -84,7 +84,11 @@ int main(int argc, char **argv) {
     gtk_container_set_border_width(GTK_CONTAINER(box), 20);
     gtk_container_add(GTK_CONTAINER(win), box);
 
-    if (g_file_test("/usr/share/ali/logo.jpg", G_FILE_TEST_EXISTS)) {
+    if (g_file_test("/usr/share/ali/logo.png", G_FILE_TEST_EXISTS)) {
+        GtkWidget *logo = gtk_image_new_from_file("/usr/share/ali/logo.png");
+        gtk_image_set_pixel_size(GTK_IMAGE(logo), 120);
+        gtk_box_pack_start(GTK_BOX(box), logo, FALSE, FALSE, 0);
+    } else if (g_file_test("/usr/share/ali/logo.jpg", G_FILE_TEST_EXISTS)) {
         GtkWidget *logo = gtk_image_new_from_file("/usr/share/ali/logo.jpg");
         gtk_image_set_pixel_size(GTK_IMAGE(logo), 96);
         gtk_box_pack_start(GTK_BOX(box), logo, FALSE, FALSE, 0);

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=ALI Login Chime
+Comment=Temple Morning greets each login (disable me here)
+Exec=ali-hymns --play 1
+Icon=ali-hymns
+Terminal=false
+Categories=System;
+X-GNOME-Autostart-enabled=true

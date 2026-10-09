@@ -89,6 +89,7 @@ static void load_file(const char *path, GtkWindow *win) {
     gtk_text_buffer_set_text(tb, buf, -1);
     free(buf);
     set_current_file(win, path);
+    remember_recent(path);
 }
 
 static int save_file(const char *path, GtkWindow *win) {
@@ -109,6 +110,7 @@ static int save_file(const char *path, GtkWindow *win) {
     fclose(f);
     g_free(txt);
     set_current_file(win, path);
+    remember_recent(path);
     GtkTextBuffer *tb2 = gtk_text_view_get_buffer(GTK_TEXT_VIEW(textview));
     gtk_text_buffer_set_modified(tb2, FALSE);
     return 1;
@@ -157,7 +159,64 @@ static void on_open(GtkMenuItem *m, gpointer u) {
     gtk_widget_destroy(d);
 }
 
-static void on_close_tab(GtkMenuItem *m, gpointer u) {
+static void remember_recent(const char *path) {
+    char dir[512], list[512];
+    snprintf(dir, sizeof(dir), "%s/.config/ali-notepad", g_get_home_dir());
+    g_mkdir_with_parents(dir, 0700);
+    snprintf(list, sizeof(list), "%s/recent", dir);
+    /* prepend, dedupe, keep 5 */
+    char *old = NULL;
+    g_file_get_contents(list, &old, NULL, NULL);
+    GString *s = g_string_new(path);
+    g_string_append_c(s, '\n');
+    if (old) {
+        char **lines = g_strsplit(old, "\n", -1);
+        int kept = 0;
+        for (int i = 0; lines[i] && kept < 4; i++) {
+            if (lines[i][0] && strcmp(lines[i], path) != 0) {
+                g_string_append(s, lines[i]);
+                g_string_append_c(s, '\n');
+                kept++;
+            }
+        }
+        g_strfreev(lines);
+        g_free(old);
+    }
+    g_file_set_contents(list, s->str, -1, NULL);
+    g_string_free(s, TRUE);
+}
+
+static void on_recent(GtkMenuItem *m, gpointer u) {
+    const char *path = (const char *)g_object_get_data(G_OBJECT(m), "ali-path");
+    if (!path) return;
+    if (!g_file_test(path, G_FILE_TEST_EXISTS)) return;
+    new_tab(GTK_WINDOW(u), path);
+}
+
+static void build_recent_menu(GtkWidget *fmenu, gpointer win) {
+    char list[512];
+    snprintf(list, sizeof(list), "%s/.config/ali-notepad/recent", g_get_home_dir());
+    char *content = NULL;
+    if (!g_file_get_contents(list, &content, NULL, NULL)) return;
+    GtkWidget *rm = gtk_menu_new();
+    GtkWidget *ri = gtk_menu_item_new_with_label(T("Recent", "Son Açılanlar"));
+    gtk_menu_item_set_submenu(GTK_MENU_ITEM(ri), rm);
+    char **lines = g_strsplit(content, "\n", -1);
+    int n = 0;
+    for (int i = 0; lines[i] && n < 5; i++) {
+        if (!lines[i][0]) continue;
+        const char *base = strrchr(lines[i], '/');
+        GtkWidget *it = gtk_menu_item_new_with_label(base ? base + 1 : lines[i]);
+        g_object_set_data_full(G_OBJECT(it), "ali-path", g_strdup(lines[i]), g_free);
+        g_signal_connect(it, "activate", G_CALLBACK(on_recent), win);
+        gtk_menu_shell_append(GTK_MENU_SHELL(rm), it);
+        n++;
+    }
+    g_strfreev(lines);
+    g_free(content);
+    if (n > 0)
+        gtk_menu_shell_append(GTK_MENU_SHELL(fmenu), ri);
+}
     (void)m;
     GtkWindow *win = GTK_WINDOW(u);
     GtkWidget *page = current_page();
@@ -358,6 +417,7 @@ int main(int argc, char **argv) {
     gtk_menu_shell_append(GTK_MENU_SHELL(fmenu), i_print);
     gtk_menu_shell_append(GTK_MENU_SHELL(fmenu), i_close);
     gtk_menu_shell_append(GTK_MENU_SHELL(fmenu), i_quit);
+    build_recent_menu(fmenu, win);
     gtk_menu_shell_append(GTK_MENU_SHELL(emenu), i_find);
     gtk_menu_shell_append(GTK_MENU_SHELL(emenu), i_next);
     gtk_menu_shell_append(GTK_MENU_SHELL(hmenu), i_about);
