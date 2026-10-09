@@ -1,4 +1,4 @@
-# ALI Linux 1.4.5 - Debian trixie based, XFCE, amd64
+# ALI Linux 1.4.6 - Debian trixie based, XFCE, amd64
 
 Learning project. Visible rebrand only - underneath 100% Debian.
 
@@ -45,7 +45,8 @@ Learning project. Visible rebrand only - underneath 100% Debian.
 - 1.4.2 - (staged, PUSHED in 1.4.5) Soul pack: lock screen, backup nanny, ali-game+MangoHud, hymn alarm, Fenn the ferret
 - 1.4.3 - (staged, PUSHED in 1.4.5) THE dice logo: canonical logo.jpg wired into welcome page + wizard banner
 - 1.4.4 - (staged, PUSHED in 1.4.5) Dressed in dice: dice fastfetch + About art, mini-dice menu button, greeter logo
-- 1.4.5 - PUSH: chime, CSV export, SSH limit, recents, transparency + full sweep
+- 1.4.5 - PUSHED: chime, CSV export, SSH limit, recents, transparency + dice logo everywhere
+- 1.4.6 - (staged) TCC ships with the distro, just like gcc
 
 ## Push checklist (1.4.5 push - THIS IS IT)
 ```powershell
