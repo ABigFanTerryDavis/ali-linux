@@ -13,7 +13,7 @@ Version: $VER
 Section: editors
 Priority: optional
 Architecture: amd64
-Depends: libgtk-3-0
+Depends: libgtk-3-0, libgtksourceview-3-0
 Maintainer: ALI Linux <ali@localhost>
 Description: ALI Notepad - minimal text editor
  C + GTK3 notepad for ALI Linux.

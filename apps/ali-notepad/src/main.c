@@ -1,4 +1,5 @@
 #include <gtk/gtk.h>
+#include <gtksourceview/gtksource.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -71,6 +72,26 @@ static void set_current_file(GtkWindow *win, const char *path) {
         g_object_set_data_full(G_OBJECT(page), "ali-file",
             path ? g_strdup(path) : NULL, g_free);
         set_page_title(page);
+        /* highlight by extension (.hc rides as C), oblivion dark scheme */
+        GtkWidget *view = g_object_get_data(G_OBJECT(page), "ali-view");
+        if (view) {
+            GtkSourceBuffer *sb = GTK_SOURCE_BUFFER(
+                gtk_text_view_get_buffer(GTK_TEXT_VIEW(view)));
+            GtkSourceLanguageManager *lm = gtk_source_language_manager_get_default();
+            GtkSourceLanguage *lang = NULL;
+            if (path) {
+                const char *ext = strrchr(path, '.');
+                if (ext && strcmp(ext, ".hc") == 0)
+                    lang = gtk_source_language_manager_get_language(lm, "c");
+                else if (ext)
+                    lang = gtk_source_language_manager_guess_language(lm, path, NULL);
+            }
+            gtk_source_buffer_set_language(sb, lang);
+            gtk_source_buffer_set_highlight_syntax(sb, lang != NULL);
+            GtkSourceStyleSchemeManager *sm = gtk_source_style_scheme_manager_get_default();
+            GtkSourceStyleScheme *scheme = gtk_source_style_scheme_manager_get_scheme(sm, "oblivion");
+            if (scheme) gtk_source_buffer_set_style_scheme(sb, scheme);
+        }
     }
     free(current_file);
     current_file = path ? strdup(path) : NULL;
@@ -154,12 +175,13 @@ static void new_tab(GtkWindow *win, const char *path) {
     GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll),
         GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-    GtkWidget *view = gtk_text_view_new();
+    GtkWidget *view = gtk_source_view_new();
     gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(view), GTK_WRAP_WORD_CHAR);
+    gtk_text_view_set_show_line_numbers(GTK_TEXT_VIEW(view),
+        GPOINTER_TO_INT(g_object_get_data(G_OBJECT(notebook), "ali-lines")));
+    gtk_source_view_set_highlight_current_line(GTK_SOURCE_VIEW(view), TRUE);
     g_signal_connect(gtk_text_view_get_buffer(GTK_TEXT_VIEW(view)),
         "changed", G_CALLBACK(on_buf_changed), NULL);
-    if (GPOINTER_TO_INT(g_object_get_data(G_OBJECT(notebook), "ali-lines")))
-        gtk_text_view_set_show_line_numbers(GTK_TEXT_VIEW(view), TRUE);
     gtk_container_add(GTK_CONTAINER(scroll), view);
     g_object_set_data(G_OBJECT(scroll), "ali-view", view);
     textview = view;
