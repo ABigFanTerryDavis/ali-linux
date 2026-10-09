@@ -1,0 +1,6 @@
+[Unit]
+Description=ALI honest blue screen for %i
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/ali-fail-screen %i

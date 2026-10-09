@@ -1,5 +1,6 @@
 [Unit]
 Description=Linus blunt voice - kernel error translator
+OnFailure=ali-fail@%n.service
 Documentation=https://github.com/
 After=network.target
 Wants=network.target

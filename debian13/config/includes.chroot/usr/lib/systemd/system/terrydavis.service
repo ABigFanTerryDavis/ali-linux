@@ -1,5 +1,6 @@
 [Unit]
 Description=ALI terrydavis - QoL daemon (janitor + crier + usb)
+OnFailure=ali-fail@%n.service
 Documentation=https://github.com/
 After=network.target
 Wants=network.target

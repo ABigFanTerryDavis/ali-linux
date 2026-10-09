@@ -1,0 +1,16 @@
+.TH ALI-FAIL 1 "October 2026" "ALI Linux 1.5.0" "User Commands"
+.SH NAME
+ali-fail \- the honest blue screen for fallen daemons
+.SH SYNOPSIS
+.B ali-fail
+.I unit
+.RB ( run by systemd OnFailure, not by hand )
+.SH DESCRIPTION
+Fullscreen blue alert naming the dead daemon with its last log
+lines. Offers Restart (gives up quietly if still dead), Full Log,
+and Continue Without (acknowledges, stops the restart loop for
+this boot). Odysseus gets the special truth: without it, this is
+just Debian 13. Headless fallback: wall + logger.
+.SH SEE ALSO
+.BR odysseus (8),
+.BR oracle (8)

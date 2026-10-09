@@ -67,10 +67,16 @@ jobs:
           make
           sh ./build-deb.sh
 
+      - name: Build ali-fail
+        run: |
+          cd apps/ali-fail
+          make
+          sh ./build-deb.sh
+
       - name: Stage packages
         run: |
           mkdir -p dist-apps
-          cp apps/ali-center/*.deb apps/ali-notepad/*.deb apps/ali-hymns/*.deb apps/ali-ltask/*.deb apps/ali-welcome/*.deb apps/ali-shrine/*.deb apps/ali-packages/*.deb dist-apps/
+          cp apps/ali-center/*.deb apps/ali-notepad/*.deb apps/ali-hymns/*.deb apps/ali-ltask/*.deb apps/ali-welcome/*.deb apps/ali-shrine/*.deb apps/ali-packages/*.deb apps/ali-fail/*.deb dist-apps/
           ls -lh dist-apps/
 
       - name: Upload app packages

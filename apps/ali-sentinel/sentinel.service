@@ -1,5 +1,6 @@
 [Unit]
 Description=ALI Sentinel - IDS watch + IPS exterminate
+OnFailure=ali-fail@%n.service
 Documentation=https://github.com/
 After=network.target
 Wants=network.target

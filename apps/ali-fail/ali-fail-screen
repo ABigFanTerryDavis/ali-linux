@@ -1,0 +1,26 @@
+#!/bin/sh
+# ali-fail-screen - OnFailure runner: GUI on a display, wall text headless.
+# usage: ali-fail-screen <unit>
+set -u
+unit="${1:-unknown}"
+unit="${unit%.service}"
+# systemd already restarts first: screen only if it KEEPS dying
+if command -v systemctl >/dev/null 2>&1; then
+    n=$(systemctl show -p NRestarts --value "$unit" 2>/dev/null)
+    case "$n" in ''|*[!0-9]*) n=0 ;; esac
+    if [ "$n" -lt 3 ]; then exit 0; fi
+fi
+if [ -z "${DISPLAY:-}" ]; then
+    for d in :0 :1; do
+        if [ -S "/tmp/.X11-unix/X${d#:}" ]; then DISPLAY="$d"; break; fi
+    done
+fi
+if [ -n "${DISPLAY:-}" ] && id ali >/dev/null 2>&1; then
+    export DISPLAY
+    sudo -u ali "DISPLAY=$DISPLAY" /usr/bin/ali-fail "$unit" 2>/dev/null || true
+else
+    {
+        echo "ALI FAIL: $unit keeps dying."
+        echo "Log: journalctl -u $unit / systemctl status $unit"
+    } | wall 2>/dev/null || logger -t ali-fail "unit $unit keeps dying" 2>/dev/null || true
+fi

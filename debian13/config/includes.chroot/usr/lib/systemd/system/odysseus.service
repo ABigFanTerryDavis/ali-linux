@@ -1,5 +1,6 @@
 [Unit]
 Description=Odysseus - ALI first-up last-down task
+OnFailure=ali-fail@%n.service
 Documentation=https://github.com/
 DefaultDependencies=no
 Before=sysinit.target shutdown.target
