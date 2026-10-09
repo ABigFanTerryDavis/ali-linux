@@ -1,0 +1,20 @@
+.TH HCC 1 "October 2026" "ALI Linux 1.4.8" "User Commands"
+.SH NAME
+hcc \- HolyC subset compiler: HolyC in, instant program out
+.SH SYNOPSIS
+.B hcc prog.hc
+.RI [ args... ]
+.br
+.B hcc \-o prog prog.hc
+.SH DESCRIPTION
+Translates the v1 HolyC subset (U0/U8..U64/I8..I64/F32/F64 types,
+.BR Print (),
+if/while/for/return, // comments, #include passthrough,
+.B U0 Main
+entry) to C and runs it at once through tcc (gcc fallback).
+Grows holier every release; see
+.I /usr/share/ali/examples/hello.hc
+for the first program.
+.SH SEE ALSO
+.BR tcc (1),
+.BR gcc (1)

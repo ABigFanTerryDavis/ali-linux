@@ -1,0 +1,14 @@
+#!/bin/sh
+# terry - one keystroke to the farewell. Opens Terry's last video,
+# "Rises to Throne" (via his channel, home of the single upload).
+set -u
+URL="https://www.youtube.com/@terrydavis8633"
+if command -v exo-open >/dev/null 2>&1; then
+    exo-open "$URL" 2>/dev/null &
+elif command -v xdg-open >/dev/null 2>&1; then
+    xdg-open "$URL" 2>/dev/null &
+elif command -v firefox-esr >/dev/null 2>&1; then
+    firefox-esr "$URL" 2>/dev/null &
+else
+    echo "$URL"
+fi

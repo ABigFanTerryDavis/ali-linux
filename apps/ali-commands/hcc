@@ -1,0 +1,58 @@
+#!/bin/sh
+# hcc - HolyC subset compiler for ALI Linux (v1: honest subset, grows holy).
+# Translates HolyC-looking code to C, runs it instantly through tcc
+# (gcc fallback). Valid v1: U0/U8..U64/I8..I64/F32/F64 types, Print(),
+# if/while/for/return, // comments, #include passthrough, U0/I32 Main().
+# usage: hcc prog.hc [args...] | hcc -o prog prog.hc
+set -u
+
+need_tcc() {
+    if command -v tcc >/dev/null 2>&1; then echo tcc; return 0; fi
+    if command -v gcc >/dev/null 2>&1; then echo gcc; return 0; fi
+    echo "hcc: need tcc (ships with ALI) or gcc" >&2
+    exit 1
+}
+
+if [ "${1:-}" = "-o" ]; then
+    [ $# -ge 3 ] || { echo "usage: hcc -o prog prog.hc" >&2; exit 1; }
+    out="$2"; src="$3"
+    CC=$(need_tcc)
+    tmp=$(mktemp -d) || exit 1
+    trap 'rm -rf "$tmp"' EXIT INT TERM
+    {
+        printf '#include <stdio.h>\n#include <stdint.h>\n#include <stdlib.h>\n#include <string.h>\n'
+        printf '#define U0 void\n#define U8 uint8_t\n#define U16 uint16_t\n#define U32 uint32_t\n#define U64 uint64_t\n'
+        printf '#define I8 int8_t\n#define I16 int16_t\n#define I32 int32_t\n#define I64 int64_t\n'
+        printf '#define F32 float\n#define F64 double\n'
+        sed -e 's/\bU0 Main *( *)/int main(void)/' -e 's/\bI32 Main *( *)/int main(void)/' \
+            -e 's/\bPrint *(/printf(/g' "$src"
+    } > "$tmp/prog.c"
+    if [ "$CC" = "tcc" ]; then
+        tcc "$tmp/prog.c" -o "$out" || exit 1
+    else
+        gcc -O2 "$tmp/prog.c" -o "$out" || exit 1
+    fi
+    echo "built: $out"
+    exit 0
+fi
+
+src="${1:-}"
+[ -n "$src" ] || { echo "usage: hcc prog.hc [args...] | hcc -o prog prog.hc" >&2; exit 1; }
+[ -f "$src" ] || { echo "hcc: no such file: $src" >&2; exit 1; }
+shift || true
+CC=$(need_tcc)
+tmp=$(mktemp -d) || exit 1
+trap 'rm -rf "$tmp"' EXIT INT TERM
+{
+    printf '#include <stdio.h>\n#include <stdint.h>\n#include <stdlib.h>\n#include <string.h>\n'
+    printf '#define U0 void\n#define U8 uint8_t\n#define U16 uint16_t\n#define U32 uint32_t\n#define U64 uint64_t\n'
+    printf '#define I8 int8_t\n#define I16 int16_t\n#define I32 int32_t\n#define I64 int64_t\n'
+    printf '#define F32 float\n#define F64 double\n'
+    sed -e 's/\bU0 Main *( *)/int main(void)/' -e 's/\bI32 Main *( *)/int main(void)/' \
+        -e 's/\bPrint *(/printf(/g' "$src"
+} > "$tmp/prog.c"
+if [ "$CC" = "tcc" ]; then
+    tcc -run "$tmp/prog.c" "$@"
+else
+    gcc -O2 "$tmp/prog.c" -o "$tmp/prog" && "$tmp/prog" "$@"
+fi

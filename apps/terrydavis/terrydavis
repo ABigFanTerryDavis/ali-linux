@@ -412,7 +412,7 @@ wallpaper() {
     if ! command -v xfconf-query >/dev/null 2>&1; then return 0; fi
     if ! id ali >/dev/null 2>&1; then return 0; fi
     ours=""
-    for f in /usr/share/backgrounds/ali/*.jpg; do
+    for f in /usr/share/backgrounds/ali/*.jpg /usr/share/backgrounds/ali/*.png; do
         [ -f "$f" ] && ours="$ours $f"
     done
     [ -n "$ours" ] || return 0

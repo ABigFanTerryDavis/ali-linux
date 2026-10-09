@@ -19,5 +19,6 @@ Makefile text eol=lf
 *.jpg -text
 *.jpeg -text
 *.png -text
+*.webp -text
 *.svg text eol=lf
 *.iso -text

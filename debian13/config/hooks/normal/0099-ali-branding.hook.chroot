@@ -4,10 +4,10 @@ set -e
 # Overwrites base-files on every build so branding survives upgrades in the live system
 
 cat > /etc/os-release <<'EOF'
-PRETTY_NAME="ALI Linux 1.4.7"
+PRETTY_NAME="ALI Linux 1.4.8"
 NAME="ALI Linux"
-VERSION_ID="1.4.7"
-VERSION="1.4.7"
+VERSION_ID="1.4.8"
+VERSION="1.4.8"
 ID=ali
 ID_LIKE=debian
 HOME_URL="https://github.com/"
@@ -16,9 +16,9 @@ EOF
 
 cat > /etc/lsb-release <<'EOF'
 DISTRIB_ID="ALI Linux"
-DISTRIB_RELEASE=1.4.7
+DISTRIB_RELEASE=1.4.8
 DISTRIB_CODENAME=ali
-DISTRIB_DESCRIPTION="ALI Linux 1.4.7"
+DISTRIB_DESCRIPTION="ALI Linux 1.4.8"
 EOF
 
 echo "ali" > /etc/hostname
@@ -30,9 +30,9 @@ ff02::1 ip6-allnodes
 ff02::2 ip6-allrouters
 EOF
 
-echo "ALI Linux 1.4.7 \\n \\l" > /etc/issue
-echo "ALI Linux 1.4.7" > /etc/issue.net
-echo "ALI Linux 1.4.7" > /etc/motd
+echo "ALI Linux 1.4.8 \\n \\l" > /etc/issue
+echo "ALI Linux 1.4.8" > /etc/issue.net
+echo "ALI Linux 1.4.8" > /etc/motd
 if [ -f /usr/share/ali/mascot.txt ]; then
   cat /usr/share/ali/mascot.txt >> /etc/motd 2>/dev/null || true
 fi
@@ -61,7 +61,7 @@ cat > /usr/share/backgrounds/ali/ali-wallpaper.svg <<'EOF'
 EOF
 
 # ALI Terminal + commands visible rebrand - wrappers come from includes.chroot
-chmod +x /usr/bin/ali-terminal /usr/bin/ali-update /usr/bin/ali-info /usr/bin/ali-perf /usr/bin/ali-normal /usr/bin/ali-mirrors /usr/bin/ali-game /usr/bin/ali-alarm /usr/bin/ali-update-version /usr/bin/ali-backup /usr/bin/ali-sentinel /usr/bin/odysseus /usr/bin/sentinel /usr/bin/terrydavis /usr/bin/templeos /usr/bin/ali-oracle /usr/bin/ali-retro /usr/bin/terry-dice /usr/bin/ali-passgen /usr/bin/ali-vault /usr/bin/oracle /usr/bin/risestothrone 2>/dev/null || true
+chmod +x /usr/bin/ali-terminal /usr/bin/ali-update /usr/bin/ali-info /usr/bin/ali-perf /usr/bin/ali-normal /usr/bin/ali-mirrors /usr/bin/ali-game /usr/bin/ali-alarm /usr/bin/ali-update-version /usr/bin/ali-backup /usr/bin/hcc /usr/bin/terry /usr/bin/ali-sentinel /usr/bin/odysseus /usr/bin/sentinel /usr/bin/terrydavis /usr/bin/templeos /usr/bin/ali-oracle /usr/bin/ali-retro /usr/bin/terry-dice /usr/bin/ali-passgen /usr/bin/ali-vault /usr/bin/oracle /usr/bin/risestothrone 2>/dev/null || true
 
 # Odysseus - enable first-up last-down task (symlink; git can't store it)
 mkdir -p /etc/systemd/system/sysinit.target.wants
@@ -102,7 +102,7 @@ EOF
 if [ -f /etc/bash.bashrc ] && ! grep -q "ali-safe-rm.sh" /etc/bash.bashrc 2>/dev/null; then
   echo '[ -f /etc/ali-safe-rm.sh ] && . /etc/ali-safe-rm.sh' >> /etc/bash.bashrc || true
 fi
-# ALI terminal billboard - fastfetch on every interactive terminal (1.4.7)
+# ALI terminal billboard - fastfetch on every interactive terminal (1.4.8)
 if [ -f /etc/bash.bashrc ] && ! grep -q "ALI terminal billboard" /etc/bash.bashrc 2>/dev/null; then
   cat >> /etc/bash.bashrc <<'EOF' || true
 # ALI terminal billboard
@@ -192,7 +192,7 @@ cat > /usr/share/ali/fastfetch-logo.txt <<'EOF'
  / ___ |/ /___ / /
 /_/  |_/_____/___/
 
-ALI Linux 1.4.7 - XFCE
+ALI Linux 1.4.8 - XFCE
 EOF
 cat > /etc/skel/.config/fastfetch/config.jsonc <<'EOF'
 {
@@ -219,17 +219,26 @@ cat > /etc/skel/.config/fastfetch/config.jsonc <<'EOF'
 }
 EOF
 
-# Flatpak + Flathub (1.4.7) - newer apps on the stable base
+# Flatpak + Flathub (1.4.8) - newer apps on the stable base
 if command -v flatpak >/dev/null 2>&1; then
   flatpak remote-add --system --if-not-exists flathub \
     https://flathub.org/repo/flathub.flatpakrepo 2>/dev/null || true
 fi
-# KDE Connect lane through the firewall (1.4.7)
+# KDE Connect lane through the firewall (1.4.8)
 if command -v ufw >/dev/null 2>&1; then
   ufw allow 1714:1764/tcp comment 'kdeconnect' 2>/dev/null || true
   ufw allow 1714:1764/udp comment 'kdeconnect' 2>/dev/null || true
-  # SSH rate-limit (1.4.7): throttled before Sentinel even sees it
+  # SSH rate-limit (1.4.8): throttled before Sentinel even sees it
   ufw limit 22/tcp comment 'ssh rate-limit' 2>/dev/null || true
+fi
+# TempleOS wallpapers: webp -> png at build (universal renderers), then drop webp
+if command -v dwebp >/dev/null 2>&1; then
+  for w in /usr/share/backgrounds/ali/*.webp; do
+    [ -f "$w" ] || continue
+    if dwebp "$w" -o "${w%.webp}.png" >/dev/null 2>&1; then
+      rm -f "$w"
+    fi
+  done
 fi
 # ALI icon (menu button) - refresh cache so hicolor picks up ali-logo
 if command -v gtk-update-icon-cache >/dev/null 2>&1; then
