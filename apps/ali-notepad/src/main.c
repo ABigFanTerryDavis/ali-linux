@@ -1,5 +1,4 @@
 #include <gtk/gtk.h>
-#include <gtksourceview/gtksource.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -72,26 +71,6 @@ static void set_current_file(GtkWindow *win, const char *path) {
         g_object_set_data_full(G_OBJECT(page), "ali-file",
             path ? g_strdup(path) : NULL, g_free);
         set_page_title(page);
-        /* highlight by extension (.hc rides as C), oblivion dark scheme */
-        GtkWidget *view = g_object_get_data(G_OBJECT(page), "ali-view");
-        if (view) {
-            GtkSourceBuffer *sb = GTK_SOURCE_BUFFER(
-                gtk_text_view_get_buffer(GTK_TEXT_VIEW(view)));
-            GtkSourceLanguageManager *lm = gtk_source_language_manager_get_default();
-            GtkSourceLanguage *lang = NULL;
-            if (path) {
-                const char *ext = strrchr(path, '.');
-                if (ext && strcmp(ext, ".hc") == 0)
-                    lang = gtk_source_language_manager_get_language(lm, "c");
-                else if (ext)
-                    lang = gtk_source_language_manager_guess_language(lm, path, NULL);
-            }
-            gtk_source_buffer_set_language(sb, lang);
-            gtk_source_buffer_set_highlight_syntax(sb, lang != NULL);
-            GtkSourceStyleSchemeManager *sm = gtk_source_style_scheme_manager_get_default();
-            GtkSourceStyleScheme *scheme = gtk_source_style_scheme_manager_get_scheme(sm, "oblivion");
-            if (scheme) gtk_source_buffer_set_style_scheme(sb, scheme);
-        }
     }
     free(current_file);
     current_file = path ? strdup(path) : NULL;
@@ -166,24 +145,47 @@ static void update_wc(void) {
     g_free(txt);
 }
 
+static void update_gutter(void) {
+    GtkWidget *page = current_page();
+    if (!page || !textview) return;
+    GtkWidget *gutter = g_object_get_data(G_OBJECT(page), "ali-gutter");
+    if (!gutter) return;
+    GtkTextBuffer *tb = gtk_text_view_get_buffer(GTK_TEXT_VIEW(textview));
+    GtkTextBuffer *gb = gtk_text_view_get_buffer(GTK_TEXT_VIEW(gutter));
+    int lines = gtk_text_buffer_get_line_count(tb);
+    GString *s = g_string_new(NULL);
+    for (int i = 1; i <= lines; i++) g_string_append_printf(s, "%d\n", i);
+    gtk_text_buffer_set_text(gb, s->str, -1);
+    g_string_free(s, TRUE);
+}
+
 static void on_buf_changed(GtkTextBuffer *tb, gpointer u) {
     (void)tb; (void)u;
     update_wc();
+    update_gutter();
 }
 
 static void new_tab(GtkWindow *win, const char *path) {
     GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll),
         GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-    GtkWidget *view = gtk_source_view_new();
+    GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+    GtkWidget *gutter = gtk_text_view_new();
+    gtk_text_view_set_editable(GTK_TEXT_VIEW(gutter), FALSE);
+    gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(gutter), FALSE);
+    gtk_text_view_set_justification(GTK_TEXT_VIEW(gutter), GTK_JUSTIFY_RIGHT);
+    gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(gutter), GTK_WRAP_NONE);
+    gtk_widget_set_can_focus(gutter, FALSE);
+    gtk_widget_set_size_request(gutter, 44, -1);
+    GtkWidget *view = gtk_text_view_new();
     gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(view), GTK_WRAP_WORD_CHAR);
-    gtk_text_view_set_show_line_numbers(GTK_TEXT_VIEW(view),
-        GPOINTER_TO_INT(g_object_get_data(G_OBJECT(notebook), "ali-lines")));
-    gtk_source_view_set_highlight_current_line(GTK_SOURCE_VIEW(view), TRUE);
     g_signal_connect(gtk_text_view_get_buffer(GTK_TEXT_VIEW(view)),
         "changed", G_CALLBACK(on_buf_changed), NULL);
-    gtk_container_add(GTK_CONTAINER(scroll), view);
+    gtk_box_pack_start(GTK_BOX(hbox), gutter, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(hbox), view, TRUE, TRUE, 0);
+    gtk_container_add(GTK_CONTAINER(scroll), hbox);
     g_object_set_data(G_OBJECT(scroll), "ali-view", view);
+    g_object_set_data(G_OBJECT(scroll), "ali-gutter", gutter);
     textview = view;
     gtk_notebook_append_page(GTK_NOTEBOOK(notebook), scroll,
         gtk_label_new(T("Untitled", "Başlıksız")));
@@ -192,6 +194,9 @@ static void new_tab(GtkWindow *win, const char *path) {
         gtk_notebook_get_n_pages(GTK_NOTEBOOK(notebook)) - 1);
     if (path) load_file(path, win);
     else set_current_file(win, NULL);
+    update_gutter();
+    if (!GPOINTER_TO_INT(g_object_get_data(G_OBJECT(notebook), "ali-lines")))
+        gtk_widget_hide(gutter);
 }
 
 static void on_switch(GtkNotebook *nb, GtkWidget *page, guint n, gpointer u) {
@@ -396,13 +401,16 @@ static void on_find_next(GtkMenuItem *m, gpointer u) {
 static void on_lines(GtkMenuItem *m, gpointer u) {
     (void)u;
     gboolean on = gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(m));
-    GtkWidget *page = current_page();
-    if (!page) return;
-    GtkWidget *view = g_object_get_data(G_OBJECT(page), "ali-view");
-    if (view) gtk_text_view_set_show_line_numbers(GTK_TEXT_VIEW(view), on);
     /* remember for new tabs */
     g_object_set_data(G_OBJECT(notebook), "ali-lines",
         GINT_TO_POINTER(on ? 1 : 0));
+    /* apply to every open tab */
+    int n = gtk_notebook_get_n_pages(GTK_NOTEBOOK(notebook));
+    for (int i = 0; i < n; i++) {
+        GtkWidget *page = gtk_notebook_get_nth_page(GTK_NOTEBOOK(notebook), i);
+        GtkWidget *gutter = g_object_get_data(G_OBJECT(page), "ali-gutter");
+        if (gutter) gtk_widget_set_visible(gutter, on);
+    }
 }
 
 static void on_print_draw(GtkPrintOperation *op, GtkPrintContext *ctx,
