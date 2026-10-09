@@ -1,4 +1,4 @@
-# ALI Linux 1.4.8 - Debian trixie based, XFCE, amd64
+# ALI Linux 1.4.9 - Debian trixie based, XFCE, amd64
 
 Learning project. Visible rebrand only - underneath 100% Debian.
 
@@ -49,6 +49,7 @@ Learning project. Visible rebrand only - underneath 100% Debian.
 - 1.4.6 - (staged) TCC ships with the distro, just like gcc
 - 1.4.7 - (staged) risestothrone farewell guardian + ALI Packages app
 - 1.4.8 - (staged) hcc HolyC compiler + terry farewell link + memorial wallpapers
+- 1.4.9 - (staged) abigfanterrydavis identity guardian + linustorvalds kernel voice
 
 ## Push checklist (1.4.5 push - THIS IS IT)
 ```powershell

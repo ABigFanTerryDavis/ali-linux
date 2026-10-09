@@ -1,0 +1,14 @@
+[Unit]
+Description=Linus blunt voice - kernel error translator
+Documentation=https://github.com/
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/linustorvalds
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

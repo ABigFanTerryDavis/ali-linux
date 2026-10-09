@@ -1,0 +1,14 @@
+.TH LINUSTORVALDS 8 "October 2026" "ALI Linux 1.4.9" "System Daemons"
+.SH NAME
+linustorvalds \- the kernel's blunt voice
+.SH SYNOPSIS
+.B linustorvalds
+.RI [ \-\-once ]
+.SH DESCRIPTION
+Watches the kernel journal (cursor-tracked) for err-and-worse
+and translates dmesg into plain fault and blame: OOM, disk
+errors, thermal, segfaults, USB dropouts, firmware, ACPI,
+filesystem errors, full disks, hung tasks. No ceremony.
+.SH FILES
+.IR /run/ali-linus ,
+.IR /var/log/linus.log

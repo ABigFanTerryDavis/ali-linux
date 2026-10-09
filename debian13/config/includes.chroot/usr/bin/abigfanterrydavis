@@ -1,0 +1,119 @@
+#!/bin/sh
+# abigfanterrydavis - the fan: identity guardian of ALI Linux.
+# Updates (base-files, grub, lightdm) smuggle Debian strings back in;
+# the fan re-stamps ALI on sight. Never touches apt compat (ID_LIKE,
+# sources, keyrings) - visible layer only. Hourly + --once.
+set -u
+STATE=/var/lib/abigfanterrydavis
+STATUS=/run/ali-fan
+LOG=/var/log/fan.log
+mkdir -p "$STATE"
+touch "$LOG" 2>/dev/null || true
+
+log() {
+    echo "$(date '+%F %T') fan: $1" >> "$LOG" 2>/dev/null || true
+}
+
+ping() {
+    if command -v notify-send >/dev/null 2>&1 && id ali >/dev/null 2>&1; then
+        uid=$(id -u ali)
+        sudo -u ali DISPLAY=:0 DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${uid}/bus" \
+            notify-send "ALI Fan" "$1" 2>/dev/null || true
+    fi
+}
+
+VERSION="$(grep '^VERSION_ID=' /etc/os-release 2>/dev/null | cut -d'"' -f2)"
+[ -n "$VERSION" ] || VERSION="1.4.9"
+PARDUS=""
+case "$(grep '^VERSION=' /etc/os-release 2>/dev/null)" in *Pardus*) PARDUS=" Pardus" ;; esac
+
+fixed=0
+fix() {
+    # $1 = desc; stdin = desired content; $2 = path. Rewrites on drift.
+    desc="$1"; path="$2"
+    tmp="$STATE/fix.tmp"
+    cat > "$tmp"
+    if [ ! -f "$path" ] || ! cmp -s "$tmp" "$path"; then
+        if cat "$tmp" > "$path" 2>/dev/null; then
+            log "re-stamped: $desc"
+            fixed=$((fixed + 1))
+        fi
+    fi
+    rm -f "$tmp"
+}
+
+stamp() {
+    fix "os-release" /etc/os-release <<EOF
+PRETTY_NAME="ALI Linux $VERSION$PARDUS"
+NAME="ALI Linux"
+VERSION_ID="$VERSION"
+VERSION="$VERSION$PARDUS"
+ID=ali
+ID_LIKE=debian
+HOME_URL="https://github.com/"
+DEBIAN_VERSION_FULL=13
+EOF
+    fix "lsb-release" /etc/lsb-release <<EOF
+DISTRIB_ID="ALI Linux"
+DISTRIB_RELEASE=$VERSION
+DISTRIB_CODENAME=ali
+DISTRIB_DESCRIPTION="ALI Linux $VERSION$PARDUS"
+EOF
+    fix "issue" /etc/issue <<EOF
+ALI Linux $VERSION$PARDUS \\n \\l
+EOF
+    fix "issue.net" /etc/issue.net <<EOF
+ALI Linux $VERSION$PARDUS
+EOF
+    {
+        echo "ALI Linux $VERSION$PARDUS"
+        cat /usr/share/ali/mascot.txt 2>/dev/null || true
+    } | fix "motd" /etc/motd
+    fix "hostname" /etc/hostname <<EOF
+ali
+EOF
+    fix "grub distributor" /etc/default/grub.d/ali.cfg <<EOF
+GRUB_DISTRIBUTOR="ALI Linux"
+GRUB_BACKGROUND="/usr/share/backgrounds/ali/default.jpg"
+GRUB_THEME="/boot/grub/themes/ali/theme.txt"
+GRUB_GFXMODE="1920x1080,auto"
+EOF
+    if [ -d /etc/lightdm ]; then
+        fix "greeter" /etc/lightdm/lightdm-gtk-greeter.conf <<EOF
+[greeter]
+background=/usr/share/backgrounds/ali/default.jpg
+logo=/usr/share/ali/logo.png
+theme-name=Greybird
+icon-theme-name=elementary-xfce
+font-name=Cantarell 11
+xft-antialias=true
+show-clock=true
+clock-format=%H:%M
+indicators=~host;~spacer;~clock;~spacer;~session;~a11y;~power
+EOF
+    fi
+    # sudoers + autologin must survive (live session depends on them)
+    if [ ! -f /etc/sudoers.d/ali-live ]; then
+        echo "ali ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/ali-live 2>/dev/null || true
+        chmod 0440 /etc/sudoers.d/ali-live 2>/dev/null || true
+        log "re-stamped: sudoers"
+        fixed=$((fixed + 1))
+    fi
+}
+
+case "${1:-}" in
+    --once) stamp ;;
+    *)
+        log "starting (the fan keeps the temple clean)"
+        while true; do
+            stamp
+            if [ "$fixed" -gt 0 ]; then
+                ping "re-stamped $fixed thing(s) back to ALI"
+                echo "$(date '+%F %T') repaired=$fixed" > "$STATUS"
+                fixed=0
+            else
+                echo "$(date '+%F %T') clean" > "$STATUS" 2>/dev/null || true
+            fi
+            sleep 3600
+        done ;;
+esac

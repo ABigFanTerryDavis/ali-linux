@@ -118,6 +118,8 @@ ALI_NAMES = {
     "/usr/bin/terrydavis": "terrydavis",
     "/usr/bin/templeos": "templeos",
     "/usr/bin/oracle": "oracle",
+    "/usr/bin/abigfanterrydavis": "abigfanterrydavis",
+    "/usr/bin/linustorvalds": "linustorvalds",
 }
 
 def format_mb(bytes_val):
@@ -306,6 +308,8 @@ ALI_SERVICES = [
     ("terrydavis.service", "QoL daemon: janitor, crier, game, wifi, battery"),
     ("templeos.service", "Tribute daemon: oracle lots + verse"),
     ("oracle.service", "Security voice: verdicts + lots"),
+    ("abigfanterrydavis.service", "The fan: identity guardian"),
+    ("linustorvalds.service", "Blunt voice: kernel translator"),
 ]
 
 class ServicesWidget(QWidget):

@@ -4,4 +4,4 @@
   | o   o |
   '-------'
 
-ALI Linux 1.4.8 - XFCE
+ALI Linux 1.4.9 - XFCE

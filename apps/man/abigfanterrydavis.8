@@ -1,0 +1,15 @@
+.TH ABIGFANTERRYDAVIS 8 "October 2026" "ALI Linux 1.4.9" "System Daemons"
+.SH NAME
+abigfanterrydavis \- the fan: identity guardian of ALI Linux
+.SH SYNOPSIS
+.B abigfanterrydavis
+.RI [ \-\-once ]
+.SH DESCRIPTION
+Updates smuggle Debian strings back into the visible layer; the
+fan re-stamps ALI hourly: os-release (version-preserving),
+lsb-release, issue, motd (+mascot), hostname, grub distributor
+config, greeter, sudoers. Apt compat (ID_LIKE, sources,
+keyrings) is never touched. Pings when it repairs.
+.SH FILES
+.IR /run/ali-fan ,
+.IR /var/log/fan.log

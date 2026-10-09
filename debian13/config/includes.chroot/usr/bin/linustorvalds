@@ -1,0 +1,79 @@
+#!/bin/sh
+# linustorvalds - the kernel's blunt voice. Watches for NEW kernel
+# errors (journal cursor, no re-reads) and translates dmesg into plain
+# fault and blame. No ceremony. Logs + desktop ping + status feed.
+set -u
+STATE=/var/lib/linustorvalds
+STATUS=/run/ali-linus
+LOG=/var/log/linus.log
+mkdir -p "$STATE"
+touch "$LOG" 2>/dev/null || true
+
+log() {
+    echo "$(date '+%F %T') linus: $1" >> "$LOG" 2>/dev/null || true
+}
+
+ping() {
+    if command -v notify-send >/dev/null 2>&1 && id ali >/dev/null 2>&1; then
+        uid=$(id -u ali)
+        sudo -u ali DISPLAY=:0 DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${uid}/bus" \
+            notify-send "Kernel (translated)" "$1" 2>/dev/null || true
+    fi
+}
+
+translate() {
+    # $1 = raw kernel line. Prints the blunt version.
+    line="$1"
+    case "$line" in
+        *"Out of memory"*|*"oom-killer"*|*"OOM"*)
+            echo "Out of memory. Something ate it all - check the Task Manager, biggest first." ;;
+        *"I/O error"*|*"Buffer I/O error"*|*"disk"*"error"*)
+            echo "Disk I/O error. That drive is dying - back up NOW, ask questions later." ;;
+        *"temperature above threshold"*|*"thermal"*|*"critical temperature"*)
+            echo "CPU is cooking itself. Clean the fans or stop what you're doing." ;;
+        *"segfault"*|*"segmentation fault"*)
+            echo "Something crashed face-first (segfault). Buggy app, not your fault." ;;
+        *"USB disconnect"*|*"usb"*"disconnect"*)
+            echo "USB device fell off. Cable, port, or the device gave up." ;;
+        *"failed with error"*|*"FAILED"*)
+            echo "A driver failed to load. Hardware it expected isn't answering." ;;
+        *"firmware"*"failed"*|*"firmware: failed"*)
+            echo "Firmware missing or failed. Check non-free firmware for that device." ;;
+        *"ACPI Error"*|*"ACPI BIOS Error"*)
+            echo "BIOS ACPI bug. Harmless 99% of the time, blame the motherboard vendor." ;;
+        *"EXT4-fs error"*|*"XFS"*error*|*"BTRFS error"*)
+            echo "Filesystem error. Unmount cleanly ASAP and fsck it." ;;
+        *"No space left on device"*)
+            echo "Disk full. The janitor can help, but something big has to go." ;;
+        *"blocked for more than"*)
+            echo "A task hung on I/O for 120s+. Dying disk or stuck network mount." ;;
+        *)
+            short=$(printf '%s' "$line" | cut -c1-160)
+            echo "Kernel says: $short" ;;
+    esac
+}
+
+watch() {
+    if ! command -v journalctl >/dev/null 2>&1; then return 0; fi
+    if [ -f "$STATE/cursor" ]; then
+        cur="--after-cursor=$(cat $STATE/cursor 2>/dev/null)"
+    else
+        cur="--since=1 hour ago"
+    fi
+    out=$(journalctl -k -p err..emerg --no-pager -q $cur 2>/dev/null | grep -v '^-- Logs begin' | tail -n 20)
+    journalctl -k -n1 --show-cursor 2>/dev/null | grep -a '^-- cursor:' | cut -d' ' -f3- > "$STATE/cursor" 2>/dev/null || true
+    [ -z "$out" ] && return 0
+    echo "$out" | while IFS= read -r line; do
+        [ -z "$line" ] && continue
+        msg=$(translate "$line")
+        log "$msg"
+        echo "$(date '+%F %T') $msg" > "$STATUS" 2>/dev/null || true
+        ping "$msg"
+    done
+}
+
+case "${1:-}" in
+    --once) watch ;;
+    *)  log "starting (no ceremony)"
+        while true; do watch; sleep 300; done ;;
+esac
