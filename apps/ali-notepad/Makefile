@@ -1,6 +1,6 @@
 CC=gcc
-CFLAGS=-Wall -Wextra -O2 $(shell pkg-config --cflags gtk+-3.0 gtksourceview-3.0)
-LDFLAGS=$(shell pkg-config --libs gtk+-3.0 gtksourceview-3.0)
+CFLAGS=-Wall -Wextra -O2 $(shell pkg-config --cflags gtk+-3.0 gtksourceview-5)
+LDFLAGS=$(shell pkg-config --libs gtk+-3.0 gtksourceview-5)
 
 all: ali-notepad
 
